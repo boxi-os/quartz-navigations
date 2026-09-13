@@ -1,6 +1,6 @@
 {
   "name": "quartz-navigations",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Quartz v5 component plugin that renders navigations from the content folder structure: multiple instances, selectable levels, ten presentation variants, manual sorting, active-state marking explorer-style folder and file icons (Lucide) and a type scale by level.",
   "type": "module",
   "license": "MIT",
@@ -87,7 +87,7 @@
     "category": [
       "component"
     ],
-    "version": "0.2.1",
+    "version": "0.3.0",
     "quartzVersion": ">=5.0.0",
     "dependencies": [],
     "defaultEnabled": true,

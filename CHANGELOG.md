@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.3.0] - 2026-09-13
 
 ### Added
 
@@ -24,6 +24,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Multilingual sites get the tree of the page's language by default (`language: auto`); up to
+  0.2 one tree held every language, with the language folders as folders. `language: all`
+  restores that.
 - `rootPath`, `order`, `nodeIcons`, `include` and `exclude` refer to language-neutral paths on
   multilingual sites; `include` and `exclude` also match the real slug. A `rootPath` naming a
   language folder (`rootPath: en`) keeps working: it shows that language's tree from the folder
