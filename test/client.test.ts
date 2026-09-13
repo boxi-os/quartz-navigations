@@ -101,7 +101,7 @@ describe("client script", () => {
   });
 
   it("collapses mobile-only folders on small screens, except the active trail", async () => {
-    const html = `<nav data-quartz-nav="top" data-variant="horizontal" data-mobile="accordion" data-bp-mobile="800px">
+    const html = `<nav data-quartz-nav="top" data-variant="bar" data-mobile="accordion" data-bp-mobile="800px">
         <div class="quartz-nav__panel"><ul class="quartz-nav__list">
           ${details("a/index", true, 'data-mobile-collapsible="true"')}
           ${details("b/index", true, 'data-mobile-collapsible="true" data-trail="true"')}
@@ -171,9 +171,80 @@ describe("client script", () => {
     vi.useRealTimers();
   });
 
+  it("mirrors an automatic flyout in the right half of the page and flips overflowing panels", async () => {
+    mount(
+      `<nav data-quartz-nav="side" data-variant="flyout" data-flyout-side="auto" data-trigger="click" data-bp-mobile="800px">
+        <div class="quartz-nav__panel"><ul class="quartz-nav__list">${details("a/index", false)}</ul></div></nav>
+       <nav data-quartz-nav="top" data-variant="dropdown" data-trigger="click" data-bp-mobile="800px">
+        <div class="quartz-nav__panel"><ul class="quartz-nav__list">${details("b/index", false)}</ul></div></nav>`,
+    );
+    const flyout = document.querySelector<HTMLElement>('[data-quartz-nav="side"]')!;
+    const rect = (x: number, w: number) =>
+      ({ left: x, right: x + w, width: w, top: 0, bottom: 10, height: 10 }) as DOMRect;
+    Object.defineProperty(window, "innerWidth", { value: 1000, configurable: true });
+    flyout.getBoundingClientRect = () => rect(700, 200); // right half
+    await nav();
+    expect(flyout.classList.contains("quartz-nav--flyout-left")).toBe(true);
+    flyout.getBoundingClientRect = () => rect(0, 200);
+    await nav();
+    expect(flyout.classList.contains("quartz-nav--flyout-left")).toBe(false);
+
+    const list = document.querySelector<HTMLElement>('[data-quartz-nav="top"] details > ul')!;
+    const d = list.parentElement as HTMLDetailsElement;
+    list.getBoundingClientRect = () => rect(900, 300); // sticks out on the right
+    d.open = true;
+    d.dispatchEvent(new Event("toggle"));
+    expect(list.classList.contains("quartz-nav__list--flip")).toBe(true);
+    d.open = false;
+    d.dispatchEvent(new Event("toggle"));
+    expect(list.classList.contains("quartz-nav__list--flip")).toBe(false);
+  });
+
+  it("anchors panels inside a scrolling container with fixed positioning", async () => {
+    mount(
+      `<aside style="overflow: auto"><nav data-quartz-nav="side" data-variant="flyout" data-flyout-side="right" data-trigger="click" data-bp-mobile="800px">
+        <div class="quartz-nav__panel"><ul class="quartz-nav__list">${details("a/index", false)}</ul></div></nav></aside>`,
+    );
+    Object.defineProperty(window, "innerWidth", { value: 1000, configurable: true });
+    await nav();
+    const d = document.querySelector<HTMLDetailsElement>("details")!;
+    const list = d.querySelector<HTMLElement>(":scope > ul")!;
+    d.getBoundingClientRect = () =>
+      ({ left: 20, right: 220, width: 200, top: 300, bottom: 332, height: 32 }) as DOMRect;
+    d.open = true;
+    d.dispatchEvent(new Event("toggle"));
+    expect(list.style.position).toBe("fixed");
+    expect(list.style.top).toBe("300px");
+    expect(list.style.left).toBe("224px");
+    document.dispatchEvent(new Event("scroll") as never); // stale coordinates: the panel closes
+    expect(d.open).toBe(false);
+    d.dispatchEvent(new Event("toggle"));
+    expect(list.style.position).toBe("");
+
+    // With the Popover API the panel goes to the top layer, where masks cannot reach it.
+    const shown: string[] = [];
+    const proto = HTMLElement.prototype as unknown as Record<string, unknown>;
+    proto.showPopover = function (this: HTMLElement) {
+      shown.push("show:" + this.getAttribute("popover"));
+    };
+    proto.hidePopover = function () {
+      shown.push("hide");
+    };
+    d.open = true;
+    d.dispatchEvent(new Event("toggle"));
+    expect(shown).toEqual(["show:manual"]);
+    expect(list.style.position).toBe("fixed");
+    d.open = false;
+    d.dispatchEvent(new Event("toggle"));
+    expect(shown).toEqual(["show:manual", "hide"]);
+    expect(list.hasAttribute("popover")).toBe(false);
+    delete proto.showPopover;
+    delete proto.hidePopover;
+  });
+
   it("locks scrolling while the off-canvas panel is open and closes it on Escape", async () => {
     mount(
-      `<nav data-quartz-nav="top" data-variant="horizontal" data-mobile="offcanvas" data-bp-mobile="800px">
+      `<nav data-quartz-nav="top" data-variant="bar" data-mobile="offcanvas" data-bp-mobile="800px">
         <input type="checkbox" id="top-toggle" class="quartz-nav__toggle" aria-expanded="false">
         <label for="top-toggle" class="quartz-nav__burger"></label>
         <label for="top-toggle" class="quartz-nav__backdrop"></label>
@@ -231,6 +302,21 @@ describe("client script", () => {
     document.querySelector<HTMLButtonElement>("button.quartz-nav__go")!.click();
     expect(spa).toHaveBeenCalledTimes(3);
     expect((spa.mock.calls[2] as unknown as [URL])[0].pathname.endsWith("/docs/setup")).toBe(true);
+  });
+
+  it("flags folders for the open animation only once someone interacts with them", async () => {
+    mount(
+      `<nav data-quartz-nav="side" data-variant="accordion" data-bp-mobile="800px">
+        <div class="quartz-nav__panel"><ul class="quartz-nav__list">${details("a/index", true, 'data-trail="true"')}${details("b/index", false)}</ul></div></nav>`,
+    );
+    await nav();
+    const [a, b] = Array.from(document.querySelectorAll<HTMLDetailsElement>("details"));
+    expect(a!.dataset.animate).toBeUndefined(); // open on load: no animation
+    expect(b!.dataset.animate).toBeUndefined();
+    b!.querySelector("summary")!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    expect(b!.dataset.animate).toBe("");
+    a!.querySelector("summary")!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    expect(a!.dataset.animate).toBeUndefined(); // closing an open folder does not flag it
   });
 
   it("registers cleanups for every listener", async () => {

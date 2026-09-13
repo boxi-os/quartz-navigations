@@ -5,6 +5,67 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-09-13
+
+### Changed
+
+- Variants now imply their orientation: `vertical` is `tree`, `horizontal` is `bar`; the old
+  names still resolve with a build warning. `dropdownTrigger` is `trigger` (same values, old
+  name still accepted with a warning).
+- Whole rows are click targets. `folderClick` defaults to `toggle`: the entire row of a
+  collapsible folder is the `<summary>` and opens or closes it. With `link` the row is a link
+  that fills its width and a toggle button with the chevron sits at its right edge. Folders that
+  only collapse on mobile always use the link-plus-button layout.
+- One stylesheet that follows the Quartz theme; the `--quartz-nav-*` variables stay the
+  override surface. `--quartz-nav-item-padding` became `--quartz-nav-item-padding-y` /
+  `--quartz-nav-item-padding-x`; `--quartz-nav-weight-parent` was replaced by the level
+  weights; `--quartz-nav-color-trail` now defaults to `--secondary`; new `--quartz-nav-row-height`,
+  `--quartz-nav-chevron-open-rotate`, `--quartz-nav-icon-size`, `--quartz-nav-color-icon`,
+  `--quartz-nav-bg-active`, `--quartz-nav-accent-bar`, `--quartz-nav-folder-font`.
+- Subtle animations: hover colors fade, chevrons rotate, opening folders and popup panels fade
+  in, the off-canvas panel slides. Folders rendered open (active trail, remembered state) do not
+  animate on page load; the client script sets `data-animate` on first interaction.
+- Entries of the horizontal rows, of popup panels and of the tab rows no longer wrap inside
+  themselves (`white-space: nowrap`); panels grow to fit and the mega panel lays its columns
+  out with flex-wrap instead of a fixed grid. Stacked mobile lists wrap as before.
+- Off-canvas panel has a close button (Lucide `x`) inside the panel.
+- Pager links show arrow icons next to the labels.
+
+### Added
+
+- `flyout.side: auto | right | left`: flyout panels open to the left when the navigation sits in
+  the right half of the page (`auto`, decided by the client script) or when fixed; the chevron of
+  an open flyout folder points to the panel's side. Dropdown and mega panels that would leave
+  the viewport flip to their item's right edge (`quartz-nav__list--flip`); panels inside a
+  scrolling or masked container are lifted into the top layer (Popover API, `position: fixed`
+  as fallback), anchored to their row, and close on scroll.
+- `select.button` (default `false`): the "Go" button next to a select is opt-in; choosing an
+  option navigates on its own, keyboard selection on Enter.
+- `align: left | center | right | full` for the top row of `bar`, `dropdown`, `mega` and `tabs`.
+- Explorer-style row glyphs: `folder` / `folder-open` for folders (open while the `<details>` is
+  open or, where nothing collapses, while the current page lies inside),
+  `file` for pages, `house` for the home entry, in `tree`, `accordion` and `flyout` on every
+  level and inside `dropdown`, `mega` and `columns` panels. `icons: none | type | custom | both`
+  (default `both`; booleans still accepted) switches them; `nodeIcons` sets icons per path from
+  the config, `navIcon: none` suppresses one row's icon.
+- Type scale by level: folder rows step down in size and weight (`--quartz-nav-level-*`), pages
+  are capped at `--quartz-nav-page-size`, horizontal top rows are uniform
+  (`--quartz-nav-bar-weight`). The current page gets a tinted background and, in the vertical
+  variants, an accent bar; the guide line of the list holding it and the icons on its trail take
+  the accent color.
+- Lucide icons: `navIcon: lucide:<name>` renders an inline SVG (`lucide lucide-<name>
+quartz-nav__icon`); unknown names warn once. The full icon table from `lucide-static` is bundled
+  as a compact JSON string and parsed on first use.
+- `iconNames` option (`folder`, `folderOpen`, `file`, `home`, `chevron`, `menu`, `close`,
+  `previous`, `next`) to swap the plugin's own Lucide icons.
+- `LucideIcon`, `hasLucideIcon`, `lucideIconNames` and `lucideName` exported from the main entry.
+
+### Removed
+
+- The `style` option and the `unstyled` / `basic` / `full` tiers, together with the
+  `quartz-nav--basic` / `quartz-nav--full` classes and `data-style`. A `style` value in YAML is
+  ignored with a warning.
+
 ## [0.1.0] - 2026-09-13
 
 ### Added

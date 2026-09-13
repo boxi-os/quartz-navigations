@@ -21,11 +21,55 @@ describe("resolveOptions", () => {
 
   it("falls back on unknown enum values and warns once", () => {
     const opts = resolveOptions({ variant: "carousel" as never, scope: "nope" as never });
-    expect(opts.variant).toBe("vertical");
+    expect(opts.variant).toBe("tree");
     expect(opts.scope).toBe("root");
     expect(warn).toHaveBeenCalledTimes(2);
     resolveOptions({ variant: "carousel" as never });
     expect(warn).toHaveBeenCalledTimes(2);
+  });
+
+  it("maps the 0.1 option names and warns about the removed style option", () => {
+    const opts = resolveOptions({
+      variant: "horizontal",
+      dropdownTrigger: "hover",
+      style: "basic",
+    } as never);
+    expect(opts.variant).toBe("bar");
+    expect(opts.trigger).toBe("hover");
+    expect(warn).toHaveBeenCalledTimes(3);
+    expect(resolveOptions({ variant: "vertical" } as never).variant).toBe("tree");
+    expect(resolveOptions({ trigger: "hover", dropdownTrigger: "click" } as never).trigger).toBe(
+      "hover",
+    );
+  });
+
+  it("fills missing icon names and defaults folder rows to toggling", () => {
+    expect(resolveOptions().folderClick).toBe("toggle");
+    expect(resolveOptions({ iconNames: { chevron: "chevron-right" } }).iconNames).toEqual({
+      folder: "folder",
+      folderOpen: "folder-open",
+      file: "file",
+      home: "house",
+      chevron: "chevron-right",
+      menu: "menu",
+      close: "x",
+      previous: "chevron-left",
+      next: "chevron-right",
+    });
+  });
+
+  it("resolves icon modes, booleans and the nodeIcons map", () => {
+    expect(resolveOptions().icons).toBe("both");
+    expect(resolveOptions({ icons: true }).icons).toBe("both");
+    expect(resolveOptions({ icons: false }).icons).toBe("none");
+    expect(resolveOptions({ icons: "type" }).icons).toBe("type");
+    expect(resolveOptions({ icons: "nope" as never }).icons).toBe("both");
+    expect(warn).toHaveBeenCalledTimes(1);
+    const opts = resolveOptions({
+      nodeIcons: { "/docs/": "lucide:book-open", "docs/api.md": "🧩", bad: 3 as never },
+    });
+    expect(opts.nodeIcons).toEqual({ docs: "lucide:book-open", "docs/api": "🧩" });
+    expect(treeOptionsKey(opts)).not.toBe(treeOptionsKey(resolveOptions()));
   });
 
   it("normalizes rootPath and order keys", () => {

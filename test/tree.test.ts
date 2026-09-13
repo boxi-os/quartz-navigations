@@ -164,10 +164,18 @@ describe("buildTree", () => {
     expect(titles(a.children)).toEqual(["1 One", "2 Two", "10 Ten"]);
   });
 
-  it("reads navIcon only when icons are enabled", () => {
-    const files = [page("a", "A.md", { navIcon: "📘" })];
-    expect(node(tree({}, files), "a").icon).toBeUndefined();
-    expect(node(tree({ icons: true }, files), "a").icon).toBe("📘");
+  it("reads navIcon and nodeIcons unless custom icons are off", () => {
+    const files = [page("a", "A.md", { navIcon: "📘" }), page("b/c", "b/C.md")];
+    expect(node(tree({}, files), "a").icon).toBe("📘");
+    expect(node(tree({ icons: "type" }, files), "a").icon).toBeUndefined();
+    expect(node(tree({ icons: "none" }, files), "a").icon).toBeUndefined();
+    const mapped = tree(
+      { nodeIcons: { a: "lucide:star", b: "lucide:folder-tree", "b/c": "none" } },
+      files,
+    );
+    expect(node(mapped, "a").icon).toBe("📘"); // frontmatter wins
+    expect(node(mapped, "b/index").icon).toBe("lucide:folder-tree");
+    expect(node(mapped, "b/c").icon).toBe("none");
   });
 
   it("treats folder notes and _index as folder pages", () => {

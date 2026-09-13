@@ -14,8 +14,10 @@ See `ARCHITECTURE.md` for the lifecycle and file map, `README.md` for user-facin
 - `src/tree.ts`, `src/sort.ts`, `src/scope.ts`, `src/links.ts`: pure tree logic — add tests in
   `test/` for every change.
 - `src/components/Navigation.tsx` (constructor) and `src/components/render.tsx` (markup).
-- `src/components/styles/_basic.scss` (layout) and `_full.scss` (colors); keep the breakpoint
+- `src/components/styles/navigations.scss`: the single stylesheet; every tunable value is a
+  `--quartz-nav-*` custom property (document new ones in both READMEs); keep the breakpoint
   placeholders `__NAV_BP_MOBILE__` / `__NAV_BP_DESKTOP__` in media queries.
+- `src/icons.tsx`: Lucide lookup and inline SVG rendering.
 - `src/breakpoints.ts`: reads the site's `quartz/styles/variables.scss`.
 - `src/scripts/navigations.inline.ts`: browser script.
 - `src/i18n/locales/*.ts`: plugin UI strings; add a locale by copying `en-US.ts` and registering
@@ -30,7 +32,9 @@ See `ARCHITECTURE.md` for the lifecycle and file map, `README.md` for user-facin
 - `dist/`: build output. **Tracked and committed** (Quartz installs from it). Rebuild with
   `npm run build` after any change under `src/` and commit the result.
 - `.github/`: CI configuration.
-- `tsup.config.ts`: only touch to add native-dependency exclusions.
+- `tsup.config.ts`: only touch to add native-dependency exclusions or build-time loaders (the
+  `.scss`, `.inline.ts` and `virtual:lucide-nodes` loaders must stay mirrored in
+  `vitest.config.ts`).
 
 ## Workflow
 
@@ -55,8 +59,10 @@ See `ARCHITECTURE.md` for the lifecycle and file map, `README.md` for user-facin
   content). Instance-specific behaviour goes into classes and `data-*` attributes.
 - Never hard-code breakpoints in SCSS; use the placeholders replaced by `applyBreakpoints`.
 - `preact` and `vfile` stay peerDependencies and external; everything else must be bundled, so
-  runtime packages (`github-slugger` for `@quartz-community/utils/path`) go into
+  runtime packages (`github-slugger` for `@quartz-community/utils/path`, `lucide-static`) go into
   `devDependencies`. Never widen `noExternal` in `tsup.config.ts`.
+- Animations must not play for folders rendered open; keep them bound to `data-animate`, which
+  only the client script sets on interaction.
 - The inline script must stay a plain script (no `export`, no `declare global`), and every
   `addEventListener` needs a matching `window.addCleanup()` for SPA navigation.
 - All code, comments, docs and commit messages in English; `README.de.md` mirrors `README.md`.

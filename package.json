@@ -1,7 +1,7 @@
 {
   "name": "quartz-navigations",
-  "version": "0.1.0",
-  "description": "Quartz v5 component plugin that renders navigations from the content folder structure: multiple instances, selectable levels, ten presentation variants, manual sorting and active-state marking.",
+  "version": "0.2.0",
+  "description": "Quartz v5 component plugin that renders navigations from the content folder structure: multiple instances, selectable levels, ten presentation variants, manual sorting, active-state marking explorer-style folder and file icons (Lucide) and a type scale by level.",
   "type": "module",
   "license": "MIT",
   "author": "boxi-os",
@@ -18,7 +18,8 @@
     "menu",
     "sidebar",
     "accordion",
-    "dropdown"
+    "dropdown",
+    "lucide"
   ],
   "files": [
     "dist",
@@ -70,6 +71,7 @@
     "eslint-config-prettier": "^9.1.0",
     "github-slugger": "^2.0.0",
     "jsdom": "^25.0.1",
+    "lucide-static": "^1.45.0",
     "preact": "^10.28.2",
     "prettier": "^3.6.2",
     "sass": "^1.97.3",
@@ -81,24 +83,36 @@
   "quartz": {
     "name": "quartz-navigations",
     "displayName": "Navigations",
-    "description": "Navigations from the content folder structure: multiple instances, selectable levels, ten presentation variants, manual sorting and active-state marking.",
+    "description": "Navigations from the content folder structure: multiple instances, selectable levels, ten presentation variants, manual sorting, active-state marking explorer-style folder and file icons (Lucide) and a type scale by level.",
     "category": [
       "component"
     ],
-    "version": "0.1.0",
+    "version": "0.2.0",
     "quartzVersion": ">=5.0.0",
     "dependencies": [],
     "defaultEnabled": true,
     "defaultOptions": {
-      "variant": "vertical",
+      "variant": "tree",
       "mobile": "same",
-      "style": "full",
+      "align": "left",
       "className": "",
       "id": "",
       "title": "",
       "ariaLabel": "",
       "chevrons": true,
-      "icons": false,
+      "icons": "both",
+      "iconNames": {
+        "folder": "folder",
+        "folderOpen": "folder-open",
+        "file": "file",
+        "home": "house",
+        "chevron": "chevron-down",
+        "menu": "menu",
+        "close": "x",
+        "previous": "chevron-left",
+        "next": "chevron-right"
+      },
+      "nodeIcons": {},
       "rootPath": "",
       "scope": "root",
       "depth": 0,
@@ -126,15 +140,21 @@
       "include": [],
       "exclude": [],
       "folderLink": "index",
-      "folderClick": "link",
+      "folderClick": "toggle",
       "folderDefaultState": "collapsed",
       "expandActive": true,
       "exclusive": false,
       "persistState": false,
-      "dropdownTrigger": "click",
+      "trigger": "click",
       "breakpoints": {},
       "tabs": {
         "secondary": true
+      },
+      "flyout": {
+        "side": "auto"
+      },
+      "select": {
+        "button": false
       },
       "columns": {
         "max": 4

@@ -42,11 +42,17 @@ Run tests matching a name: `npx vitest run -t "accordion"`
 - `src/links.ts` — `hrefFor()` via `resolveRelative`, `linkTarget()` for folders.
 - `src/components/Navigation.tsx` — constructor: options, stable instance id (hash), breakpoints
   → CSS string, dispatch to `src/components/render.tsx` (list variants, select, pager).
-- `src/components/styles/` — `_basic.scss` (layout, under `.quartz-nav--basic`), `_full.scss`
-  (colors, under `.quartz-nav--full`); `navigations.scss` joins them. All tunable values are
-  `--quartz-nav-*` custom properties declared in `_basic.scss` (documented in the README). Media queries use
-  `__NAV_BP_MOBILE__` / `__NAV_BP_DESKTOP__`, replaced by `src/breakpoints.ts` with the values
-  from the site's `quartz/styles/variables.scss` (Quartz 5 has no config option for breakpoints).
+- `src/components/styles/navigations.scss` — the single stylesheet under `.quartz-nav`; colors
+  and fonts come from Quartz's theme variables, every tunable value is a `--quartz-nav-*` custom
+  property (documented in the README). Open animations are bound to `details[data-animate]`,
+  which the client script sets on first interaction so folders rendered open never animate on
+  load. Media queries use `__NAV_BP_MOBILE__` / `__NAV_BP_DESKTOP__`, replaced by
+  `src/breakpoints.ts` with the values from the site's `quartz/styles/variables.scss` (Quartz 5
+  has no config option for breakpoints).
+- `src/icons.tsx` — Lucide icons: `navIcon: lucide:<name>` and the plugin's own symbols
+  (`iconNames`). The icon table comes from the virtual module `virtual:lucide-nodes`
+  (`lucide-static/icon-nodes.json` as a compact JSON string, loaders in `tsup.config.ts` and
+  `vitest.config.ts`, type in `types/globals.d.ts`), parsed on first use.
 - `src/scripts/navigations.inline.ts` — browser script (persistence, popup closing, hover,
   off-canvas scroll lock, select navigation). Must stay a script (no `export`).
 - `src/i18n/` — the plugin's own UI strings (`en-US`, `de-DE`).
@@ -66,12 +72,13 @@ Run tests matching a name: `npx vitest run -t "accordion"`
 
 ### Build system (`tsup.config.ts`)
 
-- Entry points `index`, `types`, `components/index`; everything bundled except `preact`,
-  `@jackyzha0/quartz`, `vfile` (singleton externals). `.scss` → CSS string, `.inline.ts` → bundled
-  browser JS string. `vitest.config.ts` mirrors both loaders for tests (raw file contents).
+- Entry points `index`, `types`, `components/index` with code splitting (one shared chunk, so
+  the Lucide table is emitted once); everything bundled except `preact`, `@jackyzha0/quartz`,
+  `vfile` (singleton externals). `.scss` → CSS string, `.inline.ts` → bundled browser JS string,
+  `virtual:lucide-nodes` → compact JSON string. `vitest.config.ts` mirrors all three loaders.
 - `dist/` is committed; Quartz treats the plugin as pre-built and only symlinks the peers, so every
-  runtime dependency (`@quartz-community/*`, `github-slugger`) must stay in `devDependencies` to
-  be bundled. CI verifies this (`verify-dist-bundling`).
+  runtime dependency (`@quartz-community/*`, `github-slugger`, `lucide-static`) must stay in
+  `devDependencies` to be bundled. CI verifies this (`verify-dist-bundling`).
 
 ## Claude-Skills in diesem Projekt
 

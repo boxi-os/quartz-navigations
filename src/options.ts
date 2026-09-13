@@ -1,17 +1,19 @@
 import type {
+  NavAlign,
   NavDateField,
-  NavDropdownTrigger,
   NavFolderClick,
   NavFolderLink,
+  NavFlyoutSide,
   NavFolderState,
   NavFoldersFirst,
+  NavIcons,
   NavIndexEntry,
   NavMobile,
   NavPagerOrder,
   NavScope,
   NavSort,
   NavSortDirection,
-  NavStyle,
+  NavTrigger,
   NavVariant,
   NavigationOptions,
   ResolvedOptions,
@@ -19,8 +21,8 @@ import type {
 import { warnOnce } from "./util/warn";
 
 const VARIANTS: readonly NavVariant[] = [
-  "vertical",
-  "horizontal",
+  "tree",
+  "bar",
   "accordion",
   "dropdown",
   "flyout",
@@ -31,7 +33,8 @@ const VARIANTS: readonly NavVariant[] = [
   "pager",
 ];
 const MOBILE: readonly NavMobile[] = ["same", "accordion", "offcanvas", "select", "hidden"];
-const STYLES: readonly NavStyle[] = ["unstyled", "basic", "full"];
+const ALIGNS: readonly NavAlign[] = ["left", "center", "right", "full"];
+const FLYOUT_SIDES: readonly NavFlyoutSide[] = ["auto", "right", "left"];
 const SCOPES: readonly NavScope[] = ["root", "section", "parent", "current"];
 const SORTS: readonly NavSort[] = ["manual", "alphabetical", "date"];
 const DIRECTIONS: readonly NavSortDirection[] = ["asc", "desc"];
@@ -41,23 +44,39 @@ const INDEX_ENTRIES: readonly NavIndexEntry[] = ["none", "first"];
 const FOLDER_LINKS: readonly NavFolderLink[] = ["index", "none", "first-child"];
 const FOLDER_CLICKS: readonly NavFolderClick[] = ["link", "toggle"];
 const FOLDER_STATES: readonly NavFolderState[] = ["collapsed", "open"];
-const TRIGGERS: readonly NavDropdownTrigger[] = ["click", "hover"];
+const TRIGGERS: readonly NavTrigger[] = ["click", "hover"];
 const PAGER_ORDERS: readonly NavPagerOrder[] = ["tree", "siblings"];
+const ICONS: readonly NavIcons[] = ["none", "type", "custom", "both"];
+
+/** Option spellings from 0.1.x that still resolve, with a warning. */
+const LEGACY_VARIANTS: Record<string, NavVariant> = { vertical: "tree", horizontal: "bar" };
 
 /**
  * Defaults live here, not in the manifest: Quartz passes the raw YAML `options` to the
  * component constructor and never merges `quartz.defaultOptions` from package.json.
  */
 export const defaultOptions = {
-  variant: "vertical",
+  variant: "tree",
   mobile: "same",
-  style: "full",
+  align: "left",
   className: "",
   id: "",
   title: "",
   ariaLabel: "",
   chevrons: true,
-  icons: false,
+  icons: "both",
+  iconNames: {
+    folder: "folder",
+    folderOpen: "folder-open",
+    file: "file",
+    home: "house",
+    chevron: "chevron-down",
+    menu: "menu",
+    close: "x",
+    previous: "chevron-left",
+    next: "chevron-right",
+  },
+  nodeIcons: {},
   rootPath: "",
   scope: "root",
   depth: 0,
@@ -80,14 +99,16 @@ export const defaultOptions = {
   include: [],
   exclude: [],
   folderLink: "index",
-  folderClick: "link",
+  folderClick: "toggle",
   folderDefaultState: "collapsed",
   expandActive: true,
   exclusive: false,
   persistState: false,
-  dropdownTrigger: "click",
+  trigger: "click",
   breakpoints: {},
   tabs: { secondary: true },
+  flyout: { side: "auto" },
+  select: { button: false },
   columns: { max: 4 },
   pager: { labels: true, order: "tree" },
 } satisfies NavigationOptions;
@@ -157,6 +178,23 @@ export function normalizePath(value: string): string {
   return s;
 }
 
+function normalizeNodeIcons(value: unknown): Record<string, string> {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    if (value !== undefined)
+      warnOnce("nodeIcons:type", "`nodeIcons` must be a map of path → icon.");
+    return {};
+  }
+  const out: Record<string, string> = {};
+  for (const [key, icon] of Object.entries(value as Record<string, unknown>)) {
+    if (typeof icon === "string" && icon.trim()) {
+      out[normalizePath(key)] = icon.trim();
+    } else {
+      warnOnce(`nodeIcons:${key}`, `Ignoring invalid \`nodeIcons\` entry for "${key}".`);
+    }
+  }
+  return out;
+}
+
 function normalizeOrder(value: unknown): Record<string, string[]> {
   if (value === null || typeof value !== "object" || Array.isArray(value)) {
     if (value !== undefined) warnOnce("order:type", "`order` must be a map of folder → list.");
@@ -173,21 +211,59 @@ function normalizeOrder(value: unknown): Record<string, string[]> {
 export function resolveOptions(userOpts?: NavigationOptions): ResolvedOptions {
   const user = (userOpts ?? {}) as Record<string, unknown>;
   const keys = (user.frontmatterKeys ?? {}) as Record<string, unknown>;
+  const iconNames = (user.iconNames ?? {}) as Record<string, unknown>;
   const bp = (user.breakpoints ?? {}) as Record<string, unknown>;
   const tabs = (user.tabs ?? {}) as Record<string, unknown>;
+  const flyout = (user.flyout ?? {}) as Record<string, unknown>;
+  const select = (user.select ?? {}) as Record<string, unknown>;
   const columns = (user.columns ?? {}) as Record<string, unknown>;
   const pager = (user.pager ?? {}) as Record<string, unknown>;
 
+  let variant = user.variant;
+  if (typeof variant === "string" && variant in LEGACY_VARIANTS) {
+    const renamed = LEGACY_VARIANTS[variant]!;
+    warnOnce(`legacy:variant:${variant}`, `\`variant: ${variant}\` is now \`${renamed}\`.`);
+    variant = renamed;
+  }
+  let trigger = user.trigger;
+  if (trigger === undefined && user.dropdownTrigger !== undefined) {
+    warnOnce("legacy:dropdownTrigger", "`dropdownTrigger` is now `trigger`.");
+    trigger = user.dropdownTrigger;
+  }
+  if (user.style !== undefined) {
+    warnOnce(
+      "legacy:style",
+      "`style` was removed; the navigation follows the Quartz theme, tune it with the `--quartz-nav-*` CSS variables.",
+    );
+  }
+
   return {
-    variant: pickEnum("variant", user.variant, VARIANTS, defaultOptions.variant),
+    variant: pickEnum("variant", variant, VARIANTS, defaultOptions.variant),
     mobile: pickEnum("mobile", user.mobile, MOBILE, defaultOptions.mobile),
-    style: pickEnum("style", user.style, STYLES, defaultOptions.style),
+    align: pickEnum("align", user.align, ALIGNS, defaultOptions.align),
     className: pickString(user.className, ""),
     id: pickString(user.id, "").replace(/[^A-Za-z0-9_-]/g, "-"),
     title: pickString(user.title, ""),
     ariaLabel: pickString(user.ariaLabel, ""),
     chevrons: pickBoolean(user.chevrons, defaultOptions.chevrons),
-    icons: pickBoolean(user.icons, defaultOptions.icons),
+    icons:
+      user.icons === true
+        ? "both"
+        : user.icons === false
+          ? "none"
+          : pickEnum("icons", user.icons, ICONS, defaultOptions.icons),
+    iconNames: {
+      folder: pickString(iconNames.folder, "") || defaultOptions.iconNames.folder,
+      folderOpen: pickString(iconNames.folderOpen, "") || defaultOptions.iconNames.folderOpen,
+      file: pickString(iconNames.file, "") || defaultOptions.iconNames.file,
+      home: pickString(iconNames.home, "") || defaultOptions.iconNames.home,
+      chevron: pickString(iconNames.chevron, "") || defaultOptions.iconNames.chevron,
+      menu: pickString(iconNames.menu, "") || defaultOptions.iconNames.menu,
+      close: pickString(iconNames.close, "") || defaultOptions.iconNames.close,
+      previous: pickString(iconNames.previous, "") || defaultOptions.iconNames.previous,
+      next: pickString(iconNames.next, "") || defaultOptions.iconNames.next,
+    },
+    nodeIcons: normalizeNodeIcons(user.nodeIcons),
     rootPath: normalizePath(pickString(user.rootPath, "")),
     scope: pickEnum("scope", user.scope, SCOPES, defaultOptions.scope),
     depth: pickInt("depth", user.depth, defaultOptions.depth, 0),
@@ -243,12 +319,7 @@ export function resolveOptions(userOpts?: NavigationOptions): ResolvedOptions {
     expandActive: pickBoolean(user.expandActive, defaultOptions.expandActive),
     exclusive: pickBoolean(user.exclusive, defaultOptions.exclusive),
     persistState: pickBoolean(user.persistState, defaultOptions.persistState),
-    dropdownTrigger: pickEnum(
-      "dropdownTrigger",
-      user.dropdownTrigger,
-      TRIGGERS,
-      defaultOptions.dropdownTrigger,
-    ),
+    trigger: pickEnum("trigger", trigger, TRIGGERS, defaultOptions.trigger),
     breakpoints: {
       mobile:
         typeof bp.mobile === "string" || typeof bp.mobile === "number" ? bp.mobile : undefined,
@@ -256,6 +327,10 @@ export function resolveOptions(userOpts?: NavigationOptions): ResolvedOptions {
         typeof bp.desktop === "string" || typeof bp.desktop === "number" ? bp.desktop : undefined,
     } as ResolvedOptions["breakpoints"],
     tabs: { secondary: pickBoolean(tabs.secondary, defaultOptions.tabs.secondary) },
+    flyout: {
+      side: pickEnum("flyout.side", flyout.side, FLYOUT_SIDES, defaultOptions.flyout.side),
+    },
+    select: { button: pickBoolean(select.button, defaultOptions.select.button) },
     columns: { max: pickInt("columns.max", columns.max, defaultOptions.columns.max, 1) },
     pager: {
       labels: pickBoolean(pager.labels, defaultOptions.pager.labels),
@@ -282,5 +357,6 @@ export function treeOptionsKey(opts: ResolvedOptions): string {
     include: opts.include,
     exclude: opts.exclude,
     icons: opts.icons,
+    nodeIcons: opts.nodeIcons,
   });
 }

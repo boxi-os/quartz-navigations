@@ -1,4 +1,5 @@
 import type { Translation } from "../i18n";
+import { LucideIcon, lucideName } from "../icons";
 import { hrefFor, linkTarget } from "../links";
 import { flatten, pagerNeighbours, type Scope } from "../scope";
 import type { NavNode, NavTree, ResolvedOptions } from "../types";
@@ -17,37 +18,8 @@ export interface RenderContext {
 
 /** Variants whose folders open as panels; they never start open and are never persisted. */
 export const POPUP_VARIANTS = new Set(["dropdown", "mega", "flyout"]);
-
-const chevron = (
-  <svg
-    class="quartz-nav__chevron-icon"
-    viewBox="0 0 24 24"
-    width="16"
-    height="16"
-    aria-hidden="true"
-  >
-    <polyline
-      points="6 9 12 15 18 9"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="2"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-    />
-  </svg>
-);
-
-const burger = (
-  <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
-    <path
-      d="M4 6h16M4 12h16M4 18h16"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="2"
-      stroke-linecap="round"
-    />
-  </svg>
-);
+/** Variants whose first level is a row and therefore has an alignment. */
+export const ROW_VARIANTS = new Set(["bar", "dropdown", "mega", "tabs"]);
 
 type State = "active" | "active-trail" | undefined;
 
@@ -57,14 +29,73 @@ function stateOf(node: NavNode, ctx: RenderContext): State {
   return undefined;
 }
 
-function label(node: NavNode, ctx: RenderContext, text?: string) {
+type TypeIcon = "folder" | "folder-open" | "folder-toggle" | "file" | "home";
+
+/** Variants whose rows carry folder/file glyphs at a level; horizontal top rows never do. */
+function typeIconsAt(level: number, ctx: RenderContext): boolean {
+  switch (ctx.opts.variant) {
+    case "tree":
+    case "accordion":
+    case "flyout":
+      return true;
+    case "dropdown":
+    case "mega":
+    case "columns":
+      return level >= 2;
+    default:
+      return false;
+  }
+}
+
+function typeIconEl(kind: TypeIcon, ctx: RenderContext) {
+  const names = ctx.opts.iconNames;
+  const one = (name: string, mod: string) => (
+    <LucideIcon name={name} className={`quartz-nav__icon quartz-nav__icon--${mod}`} />
+  );
+  switch (kind) {
+    case "folder":
+      return one(names.folder, "folder");
+    case "folder-open":
+      return one(names.folderOpen, "folder-open");
+    case "folder-toggle":
+      // Both glyphs are rendered; the stylesheet shows the one matching the <details> state.
+      return (
+        <>
+          {one(names.folder, "folder")}
+          {one(names.folderOpen, "folder-open")}
+        </>
+      );
+    case "file":
+      return one(names.file, "file");
+    case "home":
+      return one(names.home, "home");
+  }
+}
+
+/**
+ * A custom icon (`navIcon` / `nodeIcons`) wins over the type glyph; `none` suppresses both.
+ * `typeIcon` is what the row would show by its kind, already filtered by variant and level.
+ */
+function icon(node: NavNode, ctx: RenderContext, typeIcon?: TypeIcon) {
+  const mode = ctx.opts.icons;
+  if ((mode === "custom" || mode === "both") && node.icon) {
+    if (node.icon.toLowerCase() === "none") return null;
+    const lucide = lucideName(node.icon);
+    if (lucide) return <LucideIcon name={lucide} className="quartz-nav__icon" />;
+    return (
+      <span class="quartz-nav__icon" aria-hidden="true">
+        {node.icon}
+      </span>
+    );
+  }
+  if ((mode === "type" || mode === "both") && typeIcon) return typeIconEl(typeIcon, ctx);
+  return null;
+}
+
+function label(node: NavNode, ctx: RenderContext, text?: string, typeIcon?: TypeIcon) {
   return (
     <>
-      {ctx.opts.icons && node.icon && (
-        <span class="quartz-nav__icon" aria-hidden="true">
-          {node.icon}
-        </span>
-      )}
+      {icon(node, ctx, typeIcon)}
       <span class="quartz-nav__text">{text ?? node.title}</span>
     </>
   );
@@ -74,7 +105,13 @@ function label(node: NavNode, ctx: RenderContext, text?: string) {
 function titleEl(
   node: NavNode,
   ctx: RenderContext,
-  extra?: { forceStatic?: boolean; className?: string; text?: string; target?: string },
+  extra?: {
+    forceStatic?: boolean;
+    className?: string;
+    text?: string;
+    target?: string;
+    typeIcon?: TypeIcon;
+  },
 ) {
   const state = stateOf(node, ctx);
   const target = extra?.target ?? (extra?.forceStatic ? undefined : linkTarget(node, ctx.opts));
@@ -82,7 +119,7 @@ function titleEl(
   if (!target) {
     return (
       <span class={classNames(cls, "quartz-nav__link--static")}>
-        {label(node, ctx, extra?.text)}
+        {label(node, ctx, extra?.text, extra?.typeIcon)}
       </span>
     );
   }
@@ -92,8 +129,16 @@ function titleEl(
       href={hrefFor(ctx.slug, target)}
       aria-current={state === "active" ? "page" : undefined}
     >
-      {label(node, ctx, extra?.text)}
+      {label(node, ctx, extra?.text, extra?.typeIcon)}
     </a>
+  );
+}
+
+function chevron(ctx: RenderContext) {
+  return (
+    <span class="quartz-nav__chevron" aria-hidden="true">
+      <LucideIcon name={ctx.opts.iconNames.chevron} className="quartz-nav__chevron-icon" />
+    </span>
   );
 }
 
@@ -123,7 +168,7 @@ function renderList(nodes: NavNode[], level: number, ctx: RenderContext, extraCl
   );
 }
 
-function indexEntry(node: NavNode, ctx: RenderContext) {
+function indexEntry(node: NavNode, ctx: RenderContext, level: number) {
   if (ctx.opts.indexEntry !== "first" || !node.hasIndex) return null;
   const active = node.slug === ctx.slug;
   return (
@@ -136,7 +181,11 @@ function indexEntry(node: NavNode, ctx: RenderContext) {
       )}
       data-slug={node.slug}
     >
-      {titleEl(node, ctx, { target: node.slug, text: ctx.t.nav.overview })}
+      {titleEl(node, ctx, {
+        target: node.slug,
+        text: ctx.t.nav.overview,
+        typeIcon: typeIconsAt(level, ctx) ? "file" : undefined,
+      })}
     </li>
   );
 }
@@ -156,13 +205,23 @@ function renderItem(node: NavNode, level: number, ctx: RenderContext) {
     state,
   );
 
+  const withType = typeIconsAt(level, ctx);
+  const pageIcon: TypeIcon | undefined = withType ? "file" : undefined;
+
   if (!collapsible) {
+    // The glyph reports the folder's state, not whether its children happen to be visible:
+    // open only when the current page lies inside it.
+    const folderIcon: TypeIcon | undefined = withType
+      ? state !== undefined
+        ? "folder-open"
+        : "folder"
+      : undefined;
     return (
       <li class={itemClass} data-slug={node.slug}>
-        {titleEl(node, ctx)}
+        {titleEl(node, ctx, { typeIcon: node.kind === "folder" ? folderIcon : pageIcon })}
         {showChildren && (
           <ul class="quartz-nav__list" data-level={String(level + 1)}>
-            {indexEntry(node, ctx)}
+            {indexEntry(node, ctx, level + 1)}
             {node.children.map((c) => renderItem(c, level + 1, ctx))}
           </ul>
         )}
@@ -175,17 +234,19 @@ function renderItem(node: NavNode, level: number, ctx: RenderContext) {
   const open = byMobile
     ? true
     : !popup && (opts.folderDefaultState === "open" || (opts.expandActive && onTrail));
-  // A link inside <summary> would nest two controls, which assistive technology handles
-  // badly. With `folderClick: link` the title is a separate link and the summary is a pure
-  // toggle button named "Expand <title>"; with `toggle` the summary carries the title.
-  const target = opts.folderClick === "toggle" ? undefined : linkTarget(node, opts);
+  // With `folderClick: toggle` the whole row is the <summary>. With `link` the row is a link
+  // and the summary a separate toggle button named "Expand <title>" at its end; a link inside
+  // <summary> would nest two controls, which assistive technology handles badly. Folders that
+  // only collapse on mobile keep their link on desktop, so they always use the split layout.
+  const target = opts.folderClick === "toggle" && !byMobile ? undefined : linkTarget(node, opts);
   const separateLink = target !== undefined;
+  const toggleIcon: TypeIcon | undefined = withType ? "folder-toggle" : undefined;
   return (
     <li
       class={classNames(itemClass, separateLink ? "quartz-nav__item--split" : undefined)}
       data-slug={node.slug}
     >
-      {separateLink && titleEl(node, ctx, { target })}
+      {separateLink && titleEl(node, ctx, { target, typeIcon: toggleIcon })}
       <details
         class="quartz-nav__folder"
         open={open}
@@ -203,16 +264,12 @@ function renderItem(node: NavNode, level: number, ctx: RenderContext) {
           {separateLink ? (
             <span class="quartz-nav__sr-only">{ctx.t.nav.expand({ title: node.title })}</span>
           ) : (
-            titleEl(node, ctx, { forceStatic: true })
+            titleEl(node, ctx, { forceStatic: true, typeIcon: toggleIcon })
           )}
-          {(opts.chevrons || separateLink) && (
-            <span class="quartz-nav__chevron" aria-hidden="true">
-              {chevron}
-            </span>
-          )}
+          {(opts.chevrons || separateLink) && chevron(ctx)}
         </summary>
         <ul class="quartz-nav__list" data-level={String(level + 1)}>
-          {indexEntry(node, ctx)}
+          {indexEntry(node, ctx, level + 1)}
           {node.children.map((c) => renderItem(c, level + 1, ctx))}
         </ul>
       </details>
@@ -267,7 +324,11 @@ function homeEntry(ctx: RenderContext) {
       )}
       data-slug={base.slug}
     >
-      {titleEl(base, ctx, { target: base.slug, text: ctx.t.nav.home })}
+      {titleEl(base, ctx, {
+        target: base.slug,
+        text: ctx.t.nav.home,
+        typeIcon: typeIconsAt(1, ctx) ? "home" : undefined,
+      })}
     </li>
   );
 }
@@ -277,7 +338,7 @@ function selectEl(ctx: RenderContext, id: string) {
   const nodes = flatten(root, ctx.opts);
   const option = (node: NavNode, level: number) => {
     const target = linkTarget(node, ctx.opts);
-    const indent = "  ".repeat(Math.max(0, level - 1));
+    const indent = "  ".repeat(Math.max(0, level - 1));
     return (
       <option
         value={target ? hrefFor(ctx.slug, target) : ""}
@@ -326,9 +387,11 @@ function selectEl(ctx: RenderContext, id: string) {
         </option>
         {items}
       </select>
-      <button type="button" class="quartz-nav__go" data-select={id}>
-        {ctx.t.nav.go}
-      </button>
+      {ctx.opts.select.button && (
+        <button type="button" class="quartz-nav__go" data-select={id}>
+          {ctx.t.nav.go}
+        </button>
+      )}
     </div>
   );
 }
@@ -350,8 +413,10 @@ function rootClass(ctx: RenderContext, ...extra: (string | undefined)[]) {
     "quartz-nav",
     `quartz-nav--${opts.variant}`,
     `quartz-nav--mobile-${opts.mobile}`,
-    opts.style !== "unstyled" ? "quartz-nav--basic" : undefined,
-    opts.style === "full" ? "quartz-nav--full" : undefined,
+    ROW_VARIANTS.has(opts.variant) ? `quartz-nav--align-${opts.align}` : undefined,
+    opts.variant === "flyout" && opts.flyout.side === "left"
+      ? "quartz-nav--flyout-left"
+      : undefined,
     opts.className || undefined,
     ...extra,
   );
@@ -363,10 +428,10 @@ function rootData(ctx: RenderContext) {
     "data-quartz-nav": ctx.id,
     "data-variant": opts.variant,
     "data-mobile": opts.mobile,
-    "data-style": opts.style,
     "data-persist": opts.persistState && !POPUP_VARIANTS.has(opts.variant) ? "true" : undefined,
     "data-expand-active": opts.expandActive ? "true" : undefined,
-    "data-trigger": POPUP_VARIANTS.has(opts.variant) ? opts.dropdownTrigger : undefined,
+    "data-trigger": POPUP_VARIANTS.has(opts.variant) ? opts.trigger : undefined,
+    "data-flyout-side": opts.variant === "flyout" ? opts.flyout.side : undefined,
     "data-bp-mobile": ctx.mobileBreakpoint,
   };
 }
@@ -404,7 +469,7 @@ export function renderNavigation(ctx: RenderContext) {
             aria-expanded="false"
           />
           <label for={toggleId} class="quartz-nav__burger" aria-hidden="true">
-            {burger}
+            <LucideIcon name={opts.iconNames.menu} size="1.5em" />
           </label>
           <label for={toggleId} class="quartz-nav__backdrop" aria-hidden="true"></label>
         </>
@@ -413,9 +478,17 @@ export function renderNavigation(ctx: RenderContext) {
         <div class="quartz-nav__mobile-select">{selectEl(ctx, `${ctx.id}-select`)}</div>
       )}
       <div class="quartz-nav__panel" id={panelId}>
+        {offcanvas && (
+          <label for={toggleId} class="quartz-nav__close" aria-hidden="true">
+            <LucideIcon name={opts.iconNames.close} size="1.5em" />
+          </label>
+        )}
         {opts.showScopeRoot && (
           <div class="quartz-nav__root">
-            {titleEl(root, ctx, { className: "quartz-nav__root-link" })}
+            {titleEl(root, ctx, {
+              className: "quartz-nav__root-link",
+              typeIcon: typeIconsAt(1, ctx) ? "folder-open" : undefined,
+            })}
           </div>
         )}
         {body}
@@ -444,14 +517,23 @@ export function renderPager(ctx: RenderContext) {
   const { t, opts } = ctx;
   const link = (node: NavNode, rel: "prev" | "next") => {
     const target = linkTarget(node, opts)!;
+    const arrow = (
+      <span class="quartz-nav__pager-icon" aria-hidden="true">
+        <LucideIcon name={rel === "prev" ? opts.iconNames.previous : opts.iconNames.next} />
+      </span>
+    );
     return (
       <a class={`quartz-nav__${rel}`} rel={rel} href={hrefFor(ctx.slug, target)}>
-        {opts.pager.labels && (
-          <span class="quartz-nav__pager-label">
-            {rel === "prev" ? t.nav.previous : t.nav.next}
-          </span>
-        )}
-        <span class="quartz-nav__pager-title">{label(node, ctx)}</span>
+        {rel === "prev" && arrow}
+        <span class="quartz-nav__pager-body">
+          {opts.pager.labels && (
+            <span class="quartz-nav__pager-label">
+              {rel === "prev" ? t.nav.previous : t.nav.next}
+            </span>
+          )}
+          <span class="quartz-nav__pager-title">{label(node, ctx)}</span>
+        </span>
+        {rel === "next" && arrow}
       </a>
     );
   };

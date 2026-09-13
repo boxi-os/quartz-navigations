@@ -2,7 +2,8 @@
  * Client-side part of quartz-navigations. Attached as `afterDOMLoaded` of the component and
  * driven by Quartz's `nav` event. Everything the markup needs works without this script
  * (`<details>`, a checkbox for the off-canvas panel); it only adds persistence, closing
- * behaviour, hover opening, the scroll lock and select-based navigation.
+ * behaviour, hover opening, the open animation flag, the scroll lock and select-based
+ * navigation.
  *
  * No `declare global` here: the inline-script loader strips `export` statements, so this
  * file must stay a script, not a module.
@@ -39,6 +40,25 @@ function isMobile(nav: HTMLElement): boolean {
   return bp ? window.matchMedia(`(max-width: ${bp})`).matches : false;
 }
 
+/**
+ * Folders animate when they open, but not when the page renders them open (active trail,
+ * remembered state): the animation is bound to `data-animate`, which is set on a folder the
+ * first time someone interacts with it.
+ */
+function markAnimated(details: HTMLDetailsElement): void {
+  if (!details.open && details.dataset.animate === undefined) details.dataset.animate = "";
+}
+
+function setupAnimation(nav: HTMLElement): void {
+  nav.querySelectorAll<HTMLElement>("summary.quartz-nav__summary").forEach((summary) => {
+    const details = summary.parentElement;
+    if (!(details instanceof HTMLDetailsElement)) return;
+    const onClick = () => markAnimated(details);
+    summary.addEventListener("click", onClick);
+    window.addCleanup(() => summary.removeEventListener("click", onClick));
+  });
+}
+
 function setupFolders(nav: HTMLElement): void {
   const id = nav.dataset.quartzNav ?? "";
   const persist = nav.dataset.persist === "true";
@@ -66,8 +86,134 @@ function setupFolders(nav: HTMLElement): void {
   });
 }
 
+/**
+ * Nearest ancestor that would clip a panel: a scrolling sidebar (`overflow`), a masked or
+ * clipped box (`mask-image`, `clip-path`), or layout containment. Or `null`.
+ */
+function clippingAncestor(el: HTMLElement): HTMLElement | null {
+  let e = el.parentElement;
+  while (e && e !== document.body) {
+    const cs = getComputedStyle(e);
+    const clips =
+      cs.overflow !== "visible" ||
+      cs.overflowX !== "visible" ||
+      cs.overflowY !== "visible" ||
+      (cs.maskImage && cs.maskImage !== "none") ||
+      (cs.clipPath && cs.clipPath !== "none") ||
+      (cs.contain && cs.contain !== "none");
+    if (clips) return e;
+    e = e.parentElement;
+  }
+  return null;
+}
+
+const hasPopover = (el: HTMLElement): boolean => typeof el.showPopover === "function";
+
+/**
+ * Takes a panel out of its clipping ancestors: into the top layer via the Popover API where
+ * available (a mask or `overflow` on an ancestor cannot touch it there), otherwise
+ * `position: fixed`, which escapes `overflow` but not a mask.
+ */
+function liftPanel(list: HTMLElement): void {
+  if (hasPopover(list)) {
+    list.setAttribute("popover", "manual");
+    try {
+      list.showPopover();
+    } catch {
+      // already shown, or the element cannot be a popover; the fixed styles below still apply
+    }
+  }
+  list.style.position = "fixed";
+}
+
+function dropPanel(list: HTMLElement): void {
+  if (hasPopover(list) && list.hasAttribute("popover")) {
+    try {
+      list.hidePopover();
+    } catch {
+      // not shown
+    }
+    list.removeAttribute("popover");
+  }
+  list.style.position = "";
+  list.style.top = "";
+  list.style.left = "";
+  list.style.right = "";
+}
+
+/**
+ * Panels must not leave the viewport and must not be clipped. A flyout in the right half of
+ * the page opens to the left (`flyout.side: auto`); a dropdown or mega panel that would stick
+ * out on the right hangs from its item's right edge; a panel inside a scrolling container
+ * (which would clip it) is lifted into the top layer (Popover API) or, failing that, taken out
+ * of flow with `position: fixed`, and closed on scroll.
+ */
+function placePanels(nav: HTMLElement): void {
+  const variant = nav.dataset.variant ?? "";
+  const flyout = variant === "flyout";
+  if (flyout && nav.dataset.flyoutSide === "auto") {
+    const rect = nav.getBoundingClientRect();
+    const left = rect.width > 0 && rect.left + rect.width / 2 > window.innerWidth / 2;
+    nav.classList.toggle("quartz-nav--flyout-left", left);
+  }
+  const clipped = clippingAncestor(nav) !== null;
+  const fixedPanels = new Set<HTMLElement>();
+  nav.querySelectorAll<HTMLDetailsElement>("details.quartz-nav__folder").forEach((details) => {
+    const list = details.querySelector<HTMLElement>(":scope > ul");
+    if (!list) return;
+    const reset = () => {
+      list.classList.remove("quartz-nav__list--flip");
+      dropPanel(list);
+      fixedPanels.delete(list);
+    };
+    const onToggle = () => {
+      reset();
+      if (!details.open) return;
+      const row = details.getBoundingClientRect();
+      const nested = details.parentElement?.closest("details.quartz-nav__folder") !== null;
+      if (clipped && !nested && row.width > 0) {
+        // Anchored to the row instead of the clipping container.
+        const toLeft = flyout && nav.classList.contains("quartz-nav--flyout-left");
+        liftPanel(list);
+        list.style.top = `${flyout ? row.top : row.bottom + 4}px`;
+        if (toLeft) {
+          list.style.left = "auto";
+          list.style.right = `${window.innerWidth - row.left + 4}px`;
+        } else {
+          list.style.right = "auto";
+          list.style.left = `${flyout ? row.right + 4 : row.left}px`;
+        }
+        fixedPanels.add(list);
+      }
+      if (flyout) return;
+      const r = list.getBoundingClientRect();
+      if (r.width > 0 && r.right > window.innerWidth) {
+        if (list.style.position === "fixed") {
+          list.style.left = "auto";
+          list.style.right = `${window.innerWidth - row.right}px`;
+        } else {
+          list.classList.add("quartz-nav__list--flip");
+        }
+      }
+    };
+    details.addEventListener("toggle", onToggle);
+    window.addCleanup(() => details.removeEventListener("toggle", onToggle));
+  });
+  if (!clipped) return;
+  // Fixed coordinates go stale while the container scrolls, so such panels close.
+  const onScroll = () => {
+    for (const list of fixedPanels) {
+      const details = list.parentElement;
+      if (details instanceof HTMLDetailsElement) details.open = false;
+    }
+  };
+  document.addEventListener("scroll", onScroll, true);
+  window.addCleanup(() => document.removeEventListener("scroll", onScroll, true));
+}
+
 function setupPopups(nav: HTMLElement): void {
   if (!POPUPS.includes(nav.dataset.variant ?? "")) return;
+  placePanels(nav);
   const all = () =>
     Array.from(nav.querySelectorAll<HTMLDetailsElement>("details.quartz-nav__folder"));
   const closeAll = (except?: HTMLDetailsElement) => {
@@ -119,6 +265,7 @@ function setupPopups(nav: HTMLElement): void {
     let timer: ReturnType<typeof setTimeout> | undefined;
     const open = () => {
       if (timer) clearTimeout(timer);
+      markAnimated(details);
       details.open = true;
     };
     const close = () => {
@@ -221,7 +368,7 @@ function setupSelects(nav: HTMLElement): void {
 
 function scrollActiveIntoView(nav: HTMLElement): void {
   const variant = nav.dataset.variant ?? "";
-  if (!["vertical", "accordion", "flyout"].includes(variant)) return;
+  if (!["tree", "accordion", "flyout"].includes(variant)) return;
   const panel = nav.querySelector<HTMLElement>(".quartz-nav__panel");
   const active = panel?.querySelector<HTMLElement>("a.active");
   if (!panel || !active || panel.scrollHeight <= panel.clientHeight) return;
@@ -230,6 +377,7 @@ function scrollActiveIntoView(nav: HTMLElement): void {
 
 function setup(): void {
   document.querySelectorAll<HTMLElement>("nav[data-quartz-nav]").forEach((nav) => {
+    setupAnimation(nav);
     setupFolders(nav);
     setupPopups(nav);
     setupOffcanvas(nav);

@@ -1,6 +1,7 @@
 export { Navigation } from './components/index.js';
 import { ResolvedOptions, NavTree, NavigationOptions, NavNode } from './types.js';
-export { NavMobile, NavScope, NavSort, NavStyle, NavVariant, NavigationBreakpoints, NavigationFrontmatterKeys } from './types.js';
+export { NavMobile, NavScope, NavSort, NavVariant, NavigationBreakpoints, NavigationFrontmatterKeys, NavigationIconNames } from './types.js';
+import { h } from 'preact';
 import '@quartz-community/types';
 
 type FileData = Record<string, unknown>;
@@ -17,15 +18,27 @@ declare function treeFromFiles(allFiles: FileData[], opts: ResolvedOptions): Nav
  * component constructor and never merges `quartz.defaultOptions` from package.json.
  */
 declare const defaultOptions: {
-    variant: "vertical";
+    variant: "tree";
     mobile: "same";
-    style: "full";
+    align: "left";
     className: string;
     id: string;
     title: string;
     ariaLabel: string;
     chevrons: true;
-    icons: false;
+    icons: "both";
+    iconNames: {
+        folder: string;
+        folderOpen: string;
+        file: string;
+        home: string;
+        chevron: string;
+        menu: string;
+        close: string;
+        previous: string;
+        next: string;
+    };
+    nodeIcons: {};
     rootPath: string;
     scope: "root";
     depth: number;
@@ -53,15 +66,21 @@ declare const defaultOptions: {
     include: never[];
     exclude: never[];
     folderLink: "index";
-    folderClick: "link";
+    folderClick: "toggle";
     folderDefaultState: "collapsed";
     expandActive: true;
     exclusive: false;
     persistState: false;
-    dropdownTrigger: "click";
+    trigger: "click";
     breakpoints: {};
     tabs: {
         secondary: true;
+    };
+    flyout: {
+        side: "auto";
+    };
+    select: {
+        button: false;
     };
     columns: {
         max: number;
@@ -89,4 +108,17 @@ declare function resolveScope(tree: NavTree, currentSlug: string, opts: Resolved
 /** Pre-order list of the nodes rendered below `root`, honouring `depth`. */
 declare function flatten(root: NavNode, opts: ResolvedOptions): NavNode[];
 
-export { NavNode, NavTree, NavigationOptions, ResolvedOptions, type Scope, buildTree, chainOf, defaultOptions, flatten, resolveOptions, resolveScope, treeFromFiles };
+/** `lucide:book-open` → `book-open`; anything else → `undefined`. */
+declare function lucideName(value: string | undefined): string | undefined;
+declare function hasLucideIcon(name: string): boolean;
+declare function lucideIconNames(): string[];
+interface LucideIconProps {
+    name: string;
+    className?: string;
+    /** CSS length; defaults to `1em`. */
+    size?: string;
+}
+/** Inline SVG of a Lucide icon, or nothing (with one warning) for an unknown name. */
+declare function LucideIcon({ name, className, size }: LucideIconProps): h.JSX.Element | null;
+
+export { LucideIcon, NavNode, NavTree, NavigationOptions, ResolvedOptions, type Scope, buildTree, chainOf, defaultOptions, flatten, hasLucideIcon, lucideIconNames, lucideName, resolveOptions, resolveScope, treeFromFiles };

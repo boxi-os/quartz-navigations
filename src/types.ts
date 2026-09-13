@@ -9,8 +9,8 @@ export type {
 } from "@quartz-community/types";
 
 export type NavVariant =
-  | "vertical"
-  | "horizontal"
+  | "tree"
+  | "bar"
   | "accordion"
   | "dropdown"
   | "flyout"
@@ -20,7 +20,6 @@ export type NavVariant =
   | "select"
   | "pager";
 export type NavMobile = "same" | "accordion" | "offcanvas" | "select" | "hidden";
-export type NavStyle = "unstyled" | "basic" | "full";
 export type NavScope = "root" | "section" | "parent" | "current";
 export type NavSort = "manual" | "alphabetical" | "date";
 export type NavSortDirection = "asc" | "desc";
@@ -30,8 +29,14 @@ export type NavIndexEntry = "none" | "first";
 export type NavFolderLink = "index" | "none" | "first-child";
 export type NavFolderClick = "link" | "toggle";
 export type NavFolderState = "collapsed" | "open";
-export type NavDropdownTrigger = "click" | "hover";
+export type NavTrigger = "click" | "hover";
 export type NavPagerOrder = "tree" | "siblings";
+/** Which icons a row shows: none, folder/file glyphs, custom `navIcon` values, or both. */
+export type NavIcons = "none" | "type" | "custom" | "both";
+/** Alignment of the horizontal variants' top row; `full` spreads the entries over the width. */
+export type NavAlign = "left" | "center" | "right" | "full";
+/** Side the flyout panels open to; `auto` picks it from the navigation's position on the page. */
+export type NavFlyoutSide = "auto" | "right" | "left";
 
 export interface NavigationFrontmatterKeys {
   /** Numeric sort key of a page or folder index. Defaults to `navOrder`. */
@@ -40,8 +45,33 @@ export interface NavigationFrontmatterKeys {
   title?: string;
   /** `true` hides the page, or the folder when set on its index page. Defaults to `navHide`. */
   hide?: string;
-  /** Short text or emoji rendered before the title when `icons` is on. Defaults to `navIcon`. */
+  /**
+   * Icon rendered before the title when `icons` is on: short text, an emoji or a Lucide icon
+   * as `lucide:<name>` (e.g. `lucide:book-open`). Defaults to `navIcon`.
+   */
   icon?: string;
+}
+
+/** Lucide icon names for the plugin's own symbols. */
+export interface NavigationIconNames {
+  /** Closed folder. Defaults to `folder`. */
+  folder?: string;
+  /** Open folder. Defaults to `folder-open`. */
+  folderOpen?: string;
+  /** Page. Defaults to `file`. */
+  file?: string;
+  /** The `showHome` entry. Defaults to `house`. */
+  home?: string;
+  /** Folder toggle. Defaults to `chevron-down`. */
+  chevron?: string;
+  /** Off-canvas burger. Defaults to `menu`. */
+  menu?: string;
+  /** Off-canvas close button. Defaults to `x`. */
+  close?: string;
+  /** Pager "Previous". Defaults to `chevron-left`. */
+  previous?: string;
+  /** Pager "Next". Defaults to `chevron-right`. */
+  next?: string;
 }
 
 export interface NavigationBreakpoints {
@@ -52,12 +82,12 @@ export interface NavigationBreakpoints {
 }
 
 export interface NavigationOptions {
-  /** Presentation. Defaults to `vertical`. */
+  /** Presentation; each variant implies its orientation. Defaults to `tree`. */
   variant?: NavVariant;
   /** Presentation below the mobile breakpoint. Defaults to `same`. */
   mobile?: NavMobile;
-  /** How much CSS the plugin ships: none, layout only, or layout with colors. Defaults to `full`. */
-  style?: NavStyle;
+  /** Alignment of `bar`, `dropdown`, `mega` and `tabs`. Defaults to `left`. */
+  align?: NavAlign;
   /** Extra class names on the root element. Defaults to none. */
   className?: string;
   /** Stable instance id used for `localStorage` and element ids. Defaults to a hash of the options. */
@@ -68,8 +98,19 @@ export interface NavigationOptions {
   ariaLabel?: string;
   /** Render chevrons on collapsible folders. Defaults to `true`. */
   chevrons?: boolean;
-  /** Render the `navIcon` frontmatter value before titles. Defaults to `false`. */
-  icons?: boolean;
+  /**
+   * Row icons: `type` draws folder and file glyphs, `custom` the `navIcon` frontmatter value
+   * (and `nodeIcons`), `both` draws the custom icon where one is set and the type glyph
+   * elsewhere, `none` draws nothing. `true` / `false` mean `both` / `none`. Defaults to `both`.
+   */
+  icons?: NavIcons | boolean;
+  /** Lucide icons for folders, files, the home entry, chevrons, burger, close and pager arrows. */
+  iconNames?: NavigationIconNames;
+  /**
+   * Icons per path from the site config, e.g. `{ docs: "lucide:book-open", "docs/api": "🧩" }`.
+   * Same syntax as `navIcon` (`lucide:<name>`, text, emoji, or `none`); frontmatter wins.
+   */
+  nodeIcons?: Record<string, string>;
   /** Folder the navigation starts at, e.g. `docs`. Defaults to the site root. */
   rootPath?: string;
   /** Which subtree to show relative to the current page. Defaults to `root`. */
@@ -114,7 +155,10 @@ export interface NavigationOptions {
   exclude?: string[];
   /** Where a folder title links to. Defaults to `index`. */
   folderLink?: NavFolderLink;
-  /** Whether a collapsible folder title is a link or toggles the folder. Defaults to `link`. */
+  /**
+   * Collapsible folders: `toggle` makes the whole row open and close the folder, `link` makes
+   * the row a link with a separate toggle button at its end. Defaults to `toggle`.
+   */
   folderClick?: NavFolderClick;
   /** Initial state of collapsible folders. Defaults to `collapsed`. */
   folderDefaultState?: NavFolderState;
@@ -124,14 +168,30 @@ export interface NavigationOptions {
   exclusive?: boolean;
   /** Remember open folders in `localStorage`. Defaults to `false`. */
   persistState?: boolean;
-  /** How dropdown, mega and flyout panels open. Defaults to `click`. */
-  dropdownTrigger?: NavDropdownTrigger;
+  /** How dropdown, mega and flyout panels open: on click or on hover and focus. Defaults to `click`. */
+  trigger?: NavTrigger;
   /** Override the breakpoints read from `quartz/styles/variables.scss`. */
   breakpoints?: NavigationBreakpoints;
   /** Options of the `tabs` variant. */
   tabs?: {
     /** Show the children of the active tab in a second row. Defaults to `true`. */
     secondary?: boolean;
+  };
+  /** Options of the `flyout` variant. */
+  flyout?: {
+    /**
+     * Side the panels open to. `auto` (default) opens to the left when the navigation sits in
+     * the right half of the viewport, decided by the client script; `right` / `left` fix it.
+     */
+    side?: NavFlyoutSide;
+  };
+  /** Options of the `select` variant and of `mobile: select`. */
+  select?: {
+    /**
+     * Show a "Go" button next to the select. Choosing an option navigates anyway (pointer
+     * selection immediately, keyboard selection on Enter). Defaults to `false`.
+     */
+    button?: boolean;
   };
   /** Options of the `columns` variant. */
   columns?: {
@@ -150,13 +210,15 @@ export interface NavigationOptions {
 export interface ResolvedOptions {
   variant: NavVariant;
   mobile: NavMobile;
-  style: NavStyle;
+  align: NavAlign;
   className: string;
   id: string;
   title: string;
   ariaLabel: string;
   chevrons: boolean;
-  icons: boolean;
+  icons: NavIcons;
+  iconNames: Required<NavigationIconNames>;
+  nodeIcons: Record<string, string>;
   rootPath: string;
   scope: NavScope;
   depth: number;
@@ -184,9 +246,11 @@ export interface ResolvedOptions {
   expandActive: boolean;
   exclusive: boolean;
   persistState: boolean;
-  dropdownTrigger: NavDropdownTrigger;
+  trigger: NavTrigger;
   breakpoints: NavigationBreakpoints;
   tabs: { secondary: boolean };
+  flyout: { side: NavFlyoutSide };
+  select: { button: boolean };
   columns: { max: number };
   pager: { labels: boolean; order: NavPagerOrder };
 }
@@ -210,6 +274,7 @@ export interface NavNode {
   listOrder?: number;
   prefixOrder?: number;
   date?: Date;
+  /** Custom icon from `navIcon` or `nodeIcons`: `lucide:<name>`, text, emoji, or `none`. */
   icon?: string;
 }
 

@@ -31,6 +31,18 @@ const inlineScriptPlugin: Plugin = {
       return { contents: result.css, loader: "text" };
     });
 
+    // Lucide's icon table (2000+ icons) is inlined as one compact JSON string instead of a
+    // pretty-printed object literal, which keeps dist/ small and defers parsing to first use.
+    parentBuild.onResolve({ filter: /^virtual:lucide-nodes$/ }, () => ({
+      path: path.resolve(absWorkingDir, "node_modules/lucide-static/icon-nodes.json"),
+      namespace: "lucide-nodes",
+    }));
+    parentBuild.onLoad({ filter: /.*/, namespace: "lucide-nodes" }, async (args) => {
+      const fs = await import("fs");
+      const text = await fs.promises.readFile(args.path, "utf8");
+      return { contents: JSON.stringify(JSON.parse(text)), loader: "text" };
+    });
+
     // Inline TypeScript files are transpiled + bundled for the browser
     parentBuild.onLoad({ filter: /\.inline\.ts$/ }, async (args) => {
       const esbuild = await import("esbuild");
@@ -109,7 +121,8 @@ export default defineConfig({
   clean: true,
   treeshake: true,
   target: "es2022",
-  splitting: false,
+  // Shared chunk so the Lucide icon table is emitted once for both entry points.
+  splitting: true,
   outDir: "dist",
   platform: "node",
   noExternal: FORCE_BUNDLED,

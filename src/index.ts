@@ -4,16 +4,17 @@ export { default as Navigation } from "./components/Navigation";
 export { buildTree, treeFromFiles } from "./tree";
 export { resolveOptions, defaultOptions } from "./options";
 export { resolveScope, chainOf, flatten } from "./scope";
+export { LucideIcon, hasLucideIcon, lucideIconNames, lucideName } from "./icons";
 
 export type {
   NavigationOptions,
   NavigationBreakpoints,
   NavigationFrontmatterKeys,
+  NavigationIconNames,
   NavNode,
   NavTree,
   NavVariant,
   NavMobile,
-  NavStyle,
   NavScope,
   NavSort,
   ResolvedOptions,

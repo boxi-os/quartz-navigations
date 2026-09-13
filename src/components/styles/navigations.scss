@@ -1,6 +1,930 @@
-// One stylesheet for every instance. Tiers are switched by classes on the root element:
-// `quartz-nav--basic` (layout, present for basic and full) and `quartz-nav--full` (colors).
-// `__NAV_BP_MOBILE__` / `__NAV_BP_DESKTOP__` are replaced at construction time with the
-// breakpoints of the site (see src/breakpoints.ts).
-@use "basic";
-@use "full";
+// One stylesheet for every instance. Colors and fonts come from Quartz's theme variables, so
+// the navigation follows the site's theme and dark mode. Every value a site might want to
+// change is a `--quartz-nav-*` custom property on the root element; Quartz wraps component CSS
+// in `@layer quartz-base`, so a site's unlayered `custom.scss` wins with a plain
+// `.quartz-nav { --quartz-nav-indent: 1.5rem; }` or per instance via
+// `.quartz-nav[data-quartz-nav="side"]` / `className`.
+//
+// Media queries use `__NAV_BP_MOBILE__` / `__NAV_BP_DESKTOP__`, replaced at construction time
+// with the breakpoints of the site's `quartz/styles/variables.scss`.
+html.quartz-nav-lock {
+  overflow: hidden;
+}
+
+@keyframes quartz-nav-drop {
+  from {
+    opacity: 0;
+    transform: translateY(-0.25rem);
+  }
+}
+
+@keyframes quartz-nav-fly {
+  from {
+    opacity: 0;
+    transform: translateX(-0.25rem);
+  }
+}
+
+@keyframes quartz-nav-fly-left {
+  from {
+    opacity: 0;
+    transform: translateX(0.25rem);
+  }
+}
+
+.quartz-nav {
+  // Spacing and shape
+  --quartz-nav-gap: 0.25rem 0.5rem;
+  --quartz-nav-nested-gap: 0.25rem 0.5rem;
+  --quartz-nav-indent: 1rem;
+  --quartz-nav-item-padding-y: 0.2rem;
+  --quartz-nav-item-padding-x: 0.5rem;
+  --quartz-nav-radius: 4px;
+  --quartz-nav-toggle-size: 1.75rem;
+  --quartz-nav-chevron-open-rotate: 180deg;
+  --quartz-nav-title-size: 1rem;
+  --quartz-nav-title-margin: 0 0 0.5rem;
+  --quartz-nav-line-height: 1.6;
+  --quartz-nav-transition: 0.2s ease;
+  --quartz-nav-icon-size: 1.1em;
+  --quartz-nav-accent-bar: 3px;
+  // Type scale by level (folders); pages use the level size capped at --quartz-nav-page-size
+  --quartz-nav-level-1-size: 0.95rem;
+  --quartz-nav-level-2-size: 0.9rem;
+  --quartz-nav-level-3-size: 0.875rem;
+  --quartz-nav-level-4-size: 0.8rem;
+  --quartz-nav-level-1-weight: 700;
+  --quartz-nav-level-2-weight: 600;
+  --quartz-nav-level-3-weight: 500;
+  --quartz-nav-level-4-weight: 500;
+  --quartz-nav-page-size: 0.875rem;
+  --quartz-nav-page-weight: 400;
+  --quartz-nav-bar-weight: 500;
+  // Popups (dropdown, mega, flyout)
+  --quartz-nav-panel-min-width: 12rem;
+  --quartz-nav-panel-padding: 0.5rem;
+  --quartz-nav-panel-radius: 6px;
+  --quartz-nav-panel-z: 20;
+  --quartz-nav-mega-min-width: min(40rem, 90vw);
+  --quartz-nav-column-min-width: 10rem;
+  --quartz-nav-column-gap: 1rem 1.5rem;
+  // Off-canvas
+  --quartz-nav-offcanvas-width: min(20rem, 85vw);
+  --quartz-nav-offcanvas-padding: 1rem;
+  --quartz-nav-offcanvas-z: 100;
+  // Colors and fonts, from the Quartz theme
+  --quartz-nav-font: var(--bodyFont, inherit);
+  --quartz-nav-heading-font: var(--headerFont, inherit);
+  --quartz-nav-color: var(--darkgray, #4e4e4e);
+  --quartz-nav-color-hover: var(--secondary, #284b63);
+  --quartz-nav-color-active: var(--secondary, #284b63);
+  --quartz-nav-color-trail: var(--secondary, #284b63);
+  --quartz-nav-color-static: var(--dark, #2b2b2b);
+  --quartz-nav-color-heading: var(--dark, #2b2b2b);
+  --quartz-nav-color-muted: var(--gray, #9c9c9c);
+  --quartz-nav-color-icon: var(--gray, #9c9c9c);
+  --quartz-nav-bg-hover: var(--highlight, rgba(143, 159, 169, 0.15));
+  --quartz-nav-bg-active: var(--highlight, rgba(143, 159, 169, 0.15));
+  --quartz-nav-bg-panel: var(--light, #fff);
+  --quartz-nav-border: var(--lightgray, #e5e5e5);
+  --quartz-nav-focus: var(--secondary, #284b63);
+  --quartz-nav-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+  --quartz-nav-backdrop: rgba(0, 0, 0, 0.35);
+  --quartz-nav-weight-active: 600;
+  --quartz-nav-folder-font: var(--quartz-nav-heading-font);
+  // Height of one row; the split toggle button is sized to it.
+  --quartz-nav-row-height: calc(
+    1em * var(--quartz-nav-line-height) + 2 * var(--quartz-nav-item-padding-y)
+  );
+
+  font-family: var(--quartz-nav-font);
+  line-height: var(--quartz-nav-line-height);
+
+  .quartz-nav__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .quartz-nav__item {
+    margin: 0;
+  }
+
+  .quartz-nav__title {
+    margin: var(--quartz-nav-title-margin);
+    font-family: var(--quartz-nav-heading-font);
+    font-size: var(--quartz-nav-title-size);
+    color: var(--quartz-nav-color-heading);
+  }
+
+  // Rows: a link or a summary fills the whole row, so the entire item is the click target.
+  .quartz-nav__link,
+  .quartz-nav__summary {
+    display: flex;
+    align-items: center;
+    gap: 0.4em;
+    padding: var(--quartz-nav-item-padding-y) var(--quartz-nav-item-padding-x);
+    border-radius: var(--quartz-nav-radius);
+    color: var(--quartz-nav-color);
+    text-decoration: none;
+    transition:
+      background-color var(--quartz-nav-transition),
+      color var(--quartz-nav-transition);
+  }
+
+  .quartz-nav__link:hover,
+  .quartz-nav__link:focus-visible,
+  .quartz-nav__summary:hover,
+  .quartz-nav__summary:focus-visible {
+    color: var(--quartz-nav-color-hover);
+    background-color: var(--quartz-nav-bg-hover);
+  }
+
+  .quartz-nav__link:focus-visible,
+  .quartz-nav__summary:focus-visible,
+  .quartz-nav__go:focus-visible,
+  .quartz-nav__select:focus-visible {
+    outline: 2px solid var(--quartz-nav-focus);
+    outline-offset: 1px;
+  }
+
+  .quartz-nav__link--static {
+    color: var(--quartz-nav-color-static);
+    cursor: default;
+  }
+
+  .quartz-nav__text {
+    min-width: 0;
+  }
+
+  // Type scale: level 1 is the section, level 2 a chapter, deeper levels are just places.
+  // Every item resolves its size, weight and color into private properties that the row
+  // (link or summary title) reads; the level rules below override the level-4 defaults.
+  .quartz-nav__item {
+    --_size: var(--quartz-nav-level-4-size);
+    --_weight: var(--quartz-nav-level-4-weight);
+    --_color: var(--quartz-nav-color-muted);
+  }
+
+  .quartz-nav__item--page {
+    --_size: min(var(--quartz-nav-level-4-size), var(--quartz-nav-page-size));
+    --_weight: var(--quartz-nav-page-weight);
+    --_color: var(--quartz-nav-color);
+  }
+
+  [data-level="1"] > .quartz-nav__item--folder {
+    --_size: var(--quartz-nav-level-1-size);
+    --_weight: var(--quartz-nav-level-1-weight);
+    --_color: var(--quartz-nav-color-heading);
+  }
+
+  [data-level="2"] > .quartz-nav__item--folder {
+    --_size: var(--quartz-nav-level-2-size);
+    --_weight: var(--quartz-nav-level-2-weight);
+    --_color: var(--quartz-nav-color-heading);
+  }
+
+  [data-level="3"] > .quartz-nav__item--folder {
+    --_size: var(--quartz-nav-level-3-size);
+    --_weight: var(--quartz-nav-level-3-weight);
+    --_color: var(--quartz-nav-color);
+  }
+
+  [data-level="4"] > .quartz-nav__item--folder {
+    --_color: var(--quartz-nav-color);
+  }
+
+  [data-level="1"] > .quartz-nav__item--page {
+    --_size: min(var(--quartz-nav-level-1-size), var(--quartz-nav-page-size));
+  }
+
+  [data-level="2"] > .quartz-nav__item--page {
+    --_size: min(var(--quartz-nav-level-2-size), var(--quartz-nav-page-size));
+  }
+
+  [data-level="3"] > .quartz-nav__item--page {
+    --_size: min(var(--quartz-nav-level-3-size), var(--quartz-nav-page-size));
+  }
+
+  .quartz-nav__item > .quartz-nav__link,
+  .quartz-nav__item > .quartz-nav__folder > .quartz-nav__summary {
+    font-size: var(--_size);
+    font-weight: var(--_weight);
+    color: var(--_color);
+  }
+
+  .quartz-nav__item--folder > .quartz-nav__link,
+  .quartz-nav__item--folder > .quartz-nav__folder > .quartz-nav__summary {
+    font-family: var(--quartz-nav-folder-font);
+  }
+
+  .quartz-nav__link.active {
+    color: var(--quartz-nav-color-active);
+    font-weight: var(--quartz-nav-weight-active);
+    background-color: var(--quartz-nav-bg-active);
+  }
+
+  .quartz-nav__link.active-trail,
+  .quartz-nav__item.active-trail > .quartz-nav__folder > .quartz-nav__summary {
+    color: var(--quartz-nav-color-trail);
+  }
+
+  // Icons: folder and file glyphs in the muted color; they join the accent on the current
+  // page and along its trail. Custom text icons stay as they are.
+  .quartz-nav__icon {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--quartz-nav-icon-size);
+    height: var(--quartz-nav-icon-size);
+  }
+
+  svg.quartz-nav__icon {
+    color: var(--quartz-nav-color-icon);
+  }
+
+  .active > svg.quartz-nav__icon,
+  .active-trail > svg.quartz-nav__icon,
+  .quartz-nav__item.active-trail > .quartz-nav__folder > .quartz-nav__summary svg.quartz-nav__icon {
+    color: currentColor;
+  }
+
+  // Collapsible folders carry both glyphs; the closed one shows until the <details> opens.
+  // Folders that are not collapsible carry a single glyph, which is never touched here.
+  .quartz-nav__icon--folder + .quartz-nav__icon--folder-open {
+    display: none;
+  }
+
+  details[open] > .quartz-nav__summary .quartz-nav__icon--folder,
+  .quartz-nav__item:has(> details[open]) > .quartz-nav__link .quartz-nav__icon--folder {
+    display: none;
+  }
+
+  details[open] > .quartz-nav__summary .quartz-nav__icon--folder + .quartz-nav__icon--folder-open,
+  .quartz-nav__item:has(> details[open])
+    > .quartz-nav__link
+    .quartz-nav__icon--folder
+    + .quartz-nav__icon--folder-open {
+    display: inline-flex;
+  }
+
+  // Summary: the whole row toggles; the title inside is plain text. Site themes often draw
+  // their own marker via `summary::before`, unlayered and therefore above this stylesheet
+  // (Quartz wraps component CSS in `@layer quartz-base`); `!important` inside a layer still
+  // beats an unlayered normal declaration, so it is the one place it is used.
+  .quartz-nav__summary {
+    cursor: pointer;
+    list-style: none;
+
+    &::-webkit-details-marker {
+      display: none;
+    }
+
+    &::before,
+    &::after {
+      content: none !important;
+      display: none !important;
+    }
+
+    > .quartz-nav__link {
+      flex: 1;
+      min-width: 0;
+      padding: 0;
+      border-radius: 0;
+      background: none;
+      font: inherit;
+      color: inherit;
+      cursor: inherit;
+    }
+  }
+
+  .quartz-nav__chevron {
+    display: inline-flex;
+    flex: none;
+    margin-left: auto;
+    color: var(--quartz-nav-color-muted);
+    transition: transform var(--quartz-nav-transition);
+  }
+
+  details[open] > .quartz-nav__summary .quartz-nav__chevron {
+    transform: rotate(var(--quartz-nav-chevron-open-rotate));
+  }
+
+  .quartz-nav__sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  // Split rows (`folderClick: link`): the link fills the row, the toggle button sits at its
+  // right edge, the list opens below both.
+  .quartz-nav__item--split {
+    position: relative;
+  }
+
+  .quartz-nav__item--split > .quartz-nav__link {
+    padding-right: calc(var(--quartz-nav-toggle-size) + 0.25rem);
+  }
+
+  .quartz-nav__summary--toggle {
+    position: absolute;
+    top: 0;
+    right: 0;
+    justify-content: center;
+    width: var(--quartz-nav-toggle-size);
+    height: var(--quartz-nav-row-height);
+    padding: 0;
+  }
+
+  // Opening a folder fades its list in; the flag is set by the client script on interaction,
+  // so folders that start open (active trail, remembered state) do not animate on page load.
+  .quartz-nav__folder[data-animate][open] > .quartz-nav__list {
+    animation: quartz-nav-drop var(--quartz-nav-transition);
+  }
+
+  .quartz-nav__list .quartz-nav__list {
+    padding-left: var(--quartz-nav-indent);
+  }
+
+  .quartz-nav__root {
+    margin-bottom: 0.5rem;
+    font-family: var(--quartz-nav-heading-font);
+    font-size: 1.05rem;
+  }
+
+  .quartz-nav__root-link {
+    color: var(--quartz-nav-color-heading);
+  }
+
+  .quartz-nav__jump {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+
+  .quartz-nav__select {
+    max-width: 100%;
+  }
+
+  .quartz-nav__select,
+  .quartz-nav__go {
+    font: inherit;
+    color: var(--quartz-nav-color-heading);
+    background-color: var(--quartz-nav-bg-panel);
+    border: 1px solid var(--quartz-nav-border);
+    border-radius: var(--quartz-nav-panel-radius);
+    padding: 0.35rem 0.5rem;
+    transition:
+      border-color var(--quartz-nav-transition),
+      color var(--quartz-nav-transition);
+  }
+
+  .quartz-nav__go {
+    cursor: pointer;
+
+    &:hover {
+      border-color: var(--quartz-nav-color-hover);
+      color: var(--quartz-nav-color-hover);
+    }
+  }
+
+  .quartz-nav__toggle,
+  .quartz-nav__burger,
+  .quartz-nav__backdrop,
+  .quartz-nav__close,
+  .quartz-nav__mobile-select {
+    display: none;
+  }
+
+  // Row family: the first level is a row.
+  &.quartz-nav--bar,
+  &.quartz-nav--dropdown,
+  &.quartz-nav--mega,
+  &.quartz-nav--tabs {
+    > .quartz-nav__panel > .quartz-nav__list,
+    > .quartz-nav__panel > .quartz-nav__tabs {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--quartz-nav-gap);
+    }
+  }
+
+  // Entries in a row never wrap inside themselves; the row wraps between entries instead.
+  &.quartz-nav--bar,
+  &.quartz-nav--dropdown,
+  &.quartz-nav--mega,
+  &.quartz-nav--tabs {
+    > .quartz-nav__panel > [data-level="1"] > .quartz-nav__item > .quartz-nav__link,
+    > .quartz-nav__panel > [data-level="1"] > .quartz-nav__item > details > summary,
+    .quartz-nav__subtabs .quartz-nav__link {
+      white-space: nowrap;
+    }
+  }
+
+  // Alignment of the row: left, center, right, or spread over the full width.
+  &.quartz-nav--align-center > .quartz-nav__panel > [data-level="1"] {
+    justify-content: center;
+  }
+
+  &.quartz-nav--align-right > .quartz-nav__panel > [data-level="1"] {
+    justify-content: flex-end;
+  }
+
+  &.quartz-nav--align-full > .quartz-nav__panel > [data-level="1"] {
+    > .quartz-nav__item {
+      flex: 1 1 0;
+      min-width: max-content;
+      text-align: center;
+    }
+
+    > .quartz-nav__item > .quartz-nav__link,
+    > .quartz-nav__item > .quartz-nav__folder > .quartz-nav__summary {
+      justify-content: center;
+    }
+
+    > .quartz-nav__item > .quartz-nav__folder > .quartz-nav__summary > .quartz-nav__link {
+      flex: 0 1 auto;
+    }
+  }
+
+  &.quartz-nav--tabs.quartz-nav--align-center .quartz-nav__subtabs {
+    justify-content: center;
+  }
+
+  &.quartz-nav--tabs.quartz-nav--align-right .quartz-nav__subtabs {
+    justify-content: flex-end;
+  }
+
+  // Top rows of the horizontal family are uniform: same size, one weight, no type glyphs.
+  &.quartz-nav--bar,
+  &.quartz-nav--dropdown,
+  &.quartz-nav--mega,
+  &.quartz-nav--tabs {
+    > .quartz-nav__panel > [data-level="1"] > .quartz-nav__item {
+      --_size: var(--quartz-nav-level-1-size);
+      --_weight: var(--quartz-nav-bar-weight);
+      --_color: var(--quartz-nav-color);
+    }
+  }
+
+  // Bar: nested levels inline after their parent, separated by a colon.
+  &.quartz-nav--bar .quartz-nav__list .quartz-nav__list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--quartz-nav-nested-gap);
+    padding-left: 0;
+  }
+
+  &.quartz-nav--bar .quartz-nav__item--parent {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--quartz-nav-nested-gap);
+  }
+
+  &.quartz-nav--bar .quartz-nav__item--parent > .quartz-nav__link .quartz-nav__text::after {
+    content: ":" / "";
+  }
+
+  // Popups: dropdown and mega open below their title, flyout to the right.
+  &.quartz-nav--dropdown,
+  &.quartz-nav--mega,
+  &.quartz-nav--flyout {
+    .quartz-nav__item--folder {
+      position: relative;
+    }
+
+    // Titles with spaces stay on one line; the panel grows to fit them.
+    .quartz-nav__folder > .quartz-nav__list .quartz-nav__link {
+      white-space: nowrap;
+    }
+
+    .quartz-nav__folder > .quartz-nav__list {
+      position: absolute;
+      z-index: var(--quartz-nav-panel-z);
+      min-width: var(--quartz-nav-panel-min-width);
+      padding: var(--quartz-nav-panel-padding);
+      background: var(--quartz-nav-bg-panel);
+      border: 1px solid var(--quartz-nav-border);
+      border-radius: var(--quartz-nav-panel-radius);
+      box-shadow: var(--quartz-nav-shadow);
+    }
+  }
+
+  &.quartz-nav--dropdown,
+  &.quartz-nav--mega {
+    .quartz-nav__folder > .quartz-nav__list {
+      top: calc(100% + 0.25rem);
+      left: 0;
+    }
+
+    // Deeper levels stay inside the panel as an indented list.
+    .quartz-nav__folder .quartz-nav__list .quartz-nav__list {
+      position: static;
+      min-width: 0;
+      padding: 0 0 0 var(--quartz-nav-indent);
+      background: none;
+      border: 0;
+      box-shadow: none;
+    }
+  }
+
+  &.quartz-nav--mega .quartz-nav__folder > .quartz-nav__list {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: var(--quartz-nav-column-gap);
+    min-width: var(--quartz-nav-mega-min-width);
+    padding: calc(var(--quartz-nav-panel-padding) * 2);
+  }
+
+  &.quartz-nav--mega .quartz-nav__folder > .quartz-nav__list > .quartz-nav__item {
+    flex: 1 1 var(--quartz-nav-column-min-width);
+  }
+
+  &.quartz-nav--mega
+    .quartz-nav__folder
+    > .quartz-nav__list
+    > .quartz-nav__item
+    > .quartz-nav__list {
+    padding-left: 0;
+  }
+
+  // A panel lifted into the top layer by the client script (inside a scrolling or masked
+  // sidebar) keeps this stylesheet's look instead of the browser's popover defaults.
+  .quartz-nav__folder > .quartz-nav__list[popover] {
+    inset: auto;
+    margin: 0;
+    width: max-content;
+    max-width: calc(100vw - 1rem);
+    color: inherit;
+    overflow: visible;
+  }
+
+  // A panel that would leave the viewport hangs from the item's right edge instead (set by the
+  // client script).
+  &.quartz-nav--dropdown .quartz-nav__folder > .quartz-nav__list--flip,
+  &.quartz-nav--mega .quartz-nav__folder > .quartz-nav__list--flip {
+    left: auto;
+    right: 0;
+  }
+
+  // Flyout: panels to the right, chevron pointing that way while open; in the right half of
+  // the page (or with `flyout.side: left`) everything mirrors.
+  &.quartz-nav--flyout {
+    --quartz-nav-chevron-open-rotate: -90deg;
+
+    .quartz-nav__folder > .quartz-nav__list {
+      top: 0;
+      left: calc(100% + 0.25rem);
+    }
+
+    .quartz-nav__folder[data-animate][open] > .quartz-nav__list {
+      animation-name: quartz-nav-fly;
+    }
+  }
+
+  &.quartz-nav--flyout-left {
+    --quartz-nav-chevron-open-rotate: 90deg;
+
+    .quartz-nav__folder > .quartz-nav__list {
+      left: auto;
+      right: calc(100% + 0.25rem);
+    }
+
+    .quartz-nav__folder[data-animate][open] > .quartz-nav__list {
+      animation-name: quartz-nav-fly-left;
+    }
+  }
+
+  // Tabs: first level as a bar, children of the active tab below.
+  &.quartz-nav--tabs {
+    .quartz-nav__tabs {
+      border-bottom: 1px solid var(--quartz-nav-border);
+    }
+
+    .quartz-nav__tabs > .quartz-nav__item > .quartz-nav__link {
+      padding: 0.35rem 0.5rem;
+      border-radius: 0;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      transition:
+        color var(--quartz-nav-transition),
+        border-color var(--quartz-nav-transition);
+
+      &:hover,
+      &:focus-visible {
+        background: none;
+      }
+    }
+
+    .quartz-nav__tabs > .quartz-nav__item.active > .quartz-nav__link,
+    .quartz-nav__tabs > .quartz-nav__item.active-trail > .quartz-nav__link {
+      color: var(--quartz-nav-color-active);
+      border-bottom-color: var(--quartz-nav-color-active);
+    }
+
+    .quartz-nav__subtabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--quartz-nav-nested-gap);
+      padding: 0.35rem 0 0;
+    }
+
+    .quartz-nav__subtabs .quartz-nav__list {
+      display: none;
+    }
+  }
+
+  // Columns: a sitemap-like grid, typically in the footer.
+  &.quartz-nav--columns {
+    > .quartz-nav__panel > .quartz-nav__list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(var(--quartz-nav-column-min-width), 1fr));
+      gap: var(--quartz-nav-column-gap);
+    }
+
+    .quartz-nav__list .quartz-nav__list {
+      padding-left: 0;
+    }
+
+    > .quartz-nav__panel > .quartz-nav__list > .quartz-nav__item > .quartz-nav__link {
+      margin-bottom: 0.25rem;
+    }
+  }
+
+  // Tree, accordion and flyout: a guide line along nested levels, colored for the list that
+  // holds the current page, and an accent bar on the current row.
+  &.quartz-nav--tree,
+  &.quartz-nav--accordion,
+  &.quartz-nav--flyout {
+    .quartz-nav__item > .quartz-nav__link.active {
+      position: relative;
+
+      &::after {
+        content: "";
+        position: absolute;
+        inset-inline-start: calc(var(--quartz-nav-item-padding-x) * -1);
+        inset-block: 0.3em;
+        width: var(--quartz-nav-accent-bar);
+        border-radius: 1px;
+        background: var(--quartz-nav-color-active);
+      }
+    }
+  }
+
+  &.quartz-nav--tree,
+  &.quartz-nav--accordion {
+    .quartz-nav__list .quartz-nav__list {
+      border-left: 1px solid var(--quartz-nav-border);
+      margin-left: calc(var(--quartz-nav-item-padding-x) + 0.1rem);
+      padding-left: calc(var(--quartz-nav-indent) - var(--quartz-nav-item-padding-x));
+    }
+
+    .quartz-nav__list .quartz-nav__list:has(> .quartz-nav__item.active) {
+      border-left-color: var(--quartz-nav-color-active);
+    }
+  }
+
+  // Pager: previous on the left, next on the right.
+  &.quartz-nav--pager {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    margin: 1.5rem 0;
+    padding-top: 1rem;
+    border-top: 1px solid var(--quartz-nav-border);
+
+    .quartz-nav__prev,
+    .quartz-nav__next {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      max-width: 48%;
+      padding: 0.5rem 0.75rem;
+      border: 1px solid var(--quartz-nav-border);
+      border-radius: var(--quartz-nav-panel-radius);
+      color: var(--quartz-nav-color);
+      text-decoration: none;
+      transition:
+        border-color var(--quartz-nav-transition),
+        color var(--quartz-nav-transition);
+
+      &:hover,
+      &:focus-visible {
+        border-color: var(--quartz-nav-color-hover);
+        color: var(--quartz-nav-color-hover);
+      }
+    }
+
+    .quartz-nav__next {
+      margin-left: auto;
+      text-align: right;
+    }
+
+    .quartz-nav__pager-body {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .quartz-nav__next .quartz-nav__pager-body {
+      align-items: flex-end;
+    }
+
+    .quartz-nav__pager-icon {
+      display: inline-flex;
+      flex: none;
+      color: var(--quartz-nav-color-muted);
+    }
+
+    .quartz-nav__pager-label {
+      font-size: 0.8em;
+      color: var(--quartz-nav-color-muted);
+    }
+
+    .quartz-nav__pager-title {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4em;
+    }
+  }
+
+  // Folders that only collapse on mobile stay open on larger screens; the toggle is
+  // removed from view, pointer and tab order there.
+  @media all and (min-width: __NAV_BP_MOBILE__) {
+    details[data-mobile-collapsible] > .quartz-nav__summary--toggle {
+      visibility: hidden;
+    }
+
+    .quartz-nav__item--split:has(details[data-mobile-collapsible]) > .quartz-nav__link {
+      padding-right: var(--quartz-nav-item-padding-x);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    --quartz-nav-transition: 0s;
+  }
+
+  @media all and (max-width: __NAV_BP_MOBILE__) {
+    &.quartz-nav--mobile-hidden {
+      display: none;
+    }
+
+    &.quartz-nav--mobile-accordion,
+    &.quartz-nav--mobile-offcanvas {
+      > .quartz-nav__panel > .quartz-nav__list,
+      > .quartz-nav__panel > .quartz-nav__tabs,
+      .quartz-nav__subtabs,
+      .quartz-nav__item--parent {
+        display: block;
+      }
+
+      .quartz-nav__list .quartz-nav__list,
+      .quartz-nav__folder > .quartz-nav__list,
+      .quartz-nav__folder > .quartz-nav__list--flip {
+        display: block;
+        position: static;
+        min-width: 0;
+        padding: 0 0 0 var(--quartz-nav-indent);
+        background: none;
+        border: 0;
+        box-shadow: none;
+      }
+
+      .quartz-nav__item--parent > .quartz-nav__link .quartz-nav__text::after {
+        content: none;
+      }
+
+      > .quartz-nav__panel > [data-level="1"] > .quartz-nav__item {
+        text-align: start;
+        min-width: 0;
+      }
+
+      .quartz-nav__link,
+      .quartz-nav__summary {
+        white-space: normal;
+      }
+
+      > .quartz-nav__panel > [data-level="1"] > .quartz-nav__item > .quartz-nav__link,
+      > .quartz-nav__panel > [data-level="1"] > .quartz-nav__item > details > summary {
+        justify-content: flex-start;
+      }
+
+      .quartz-nav__folder[data-animate][open] > .quartz-nav__list {
+        animation-name: quartz-nav-drop;
+      }
+    }
+
+    &.quartz-nav--mobile-select {
+      .quartz-nav__mobile-select {
+        display: block;
+      }
+
+      .quartz-nav__panel {
+        display: none;
+      }
+    }
+
+    &.quartz-nav--mobile-offcanvas {
+      .quartz-nav__burger {
+        display: inline-flex;
+        padding: 0.25rem;
+        border-radius: var(--quartz-nav-radius);
+        color: var(--quartz-nav-color-heading);
+        cursor: pointer;
+        transition: background-color var(--quartz-nav-transition);
+
+        &:hover {
+          background-color: var(--quartz-nav-bg-hover);
+        }
+      }
+
+      // Visually hidden but focusable, so the keyboard can open the panel.
+      .quartz-nav__toggle {
+        display: block;
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        margin: -1px;
+        padding: 0;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+        border: 0;
+      }
+
+      .quartz-nav__panel {
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        z-index: var(--quartz-nav-offcanvas-z);
+        width: var(--quartz-nav-offcanvas-width);
+        overflow-y: auto;
+        padding: var(--quartz-nav-offcanvas-padding);
+        padding-top: calc(var(--quartz-nav-offcanvas-padding) + 2rem);
+        box-sizing: border-box;
+        background: var(--quartz-nav-bg-panel);
+        box-shadow: var(--quartz-nav-shadow);
+        transform: translateX(-100%);
+        transition: transform var(--quartz-nav-transition);
+      }
+
+      .quartz-nav__close {
+        display: inline-flex;
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+        padding: 0.25rem;
+        border-radius: var(--quartz-nav-radius);
+        color: var(--quartz-nav-color-muted);
+        cursor: pointer;
+
+        &:hover {
+          color: var(--quartz-nav-color-hover);
+          background-color: var(--quartz-nav-bg-hover);
+        }
+      }
+
+      .quartz-nav__backdrop {
+        display: block;
+        position: fixed;
+        inset: 0;
+        z-index: calc(var(--quartz-nav-offcanvas-z) - 1);
+        background: var(--quartz-nav-backdrop);
+        visibility: hidden;
+        opacity: 0;
+        transition:
+          opacity var(--quartz-nav-transition),
+          visibility var(--quartz-nav-transition);
+      }
+
+      .quartz-nav__toggle:checked ~ .quartz-nav__panel {
+        transform: translateX(0);
+      }
+
+      .quartz-nav__toggle:checked ~ .quartz-nav__backdrop {
+        visibility: visible;
+        opacity: 1;
+      }
+
+      .quartz-nav__toggle:focus-visible ~ .quartz-nav__burger {
+        outline: 2px solid var(--quartz-nav-focus);
+        outline-offset: 2px;
+      }
+    }
+  }
+}
+
+:root[saved-theme="dark"] .quartz-nav {
+  --quartz-nav-shadow: 0 6px 24px rgba(0, 0, 0, 0.6);
+  --quartz-nav-backdrop: rgba(0, 0, 0, 0.55);
+}
