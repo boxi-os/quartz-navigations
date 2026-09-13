@@ -56,6 +56,7 @@ const LEGACY_VARIANTS: Record<string, NavVariant> = { vertical: "tree", horizont
  * component constructor and never merges `quartz.defaultOptions` from package.json.
  */
 export const defaultOptions = {
+  language: "auto",
   variant: "tree",
   mobile: "same",
   align: "left",
@@ -166,6 +167,21 @@ function pickStringList(key: string, value: unknown): string[] {
   return out;
 }
 
+function pickLanguage(value: unknown): string {
+  if (value === undefined) return defaultOptions.language;
+  if (
+    typeof value === "string" &&
+    /^[A-Za-z]{2,3}([-_][A-Za-z0-9]+)*$|^(auto|all)$/.test(value.trim())
+  ) {
+    return value.trim().toLowerCase();
+  }
+  warnOnce(
+    `language:${String(value)}`,
+    `Unknown value ${JSON.stringify(value)} for \`language\`; using \`auto\`.`,
+  );
+  return defaultOptions.language;
+}
+
 /** `docs/`, `/docs/index`, `docs.md` and `docs/index.md` all mean the folder `docs`. */
 export function normalizePath(value: string): string {
   let s = value
@@ -238,6 +254,7 @@ export function resolveOptions(userOpts?: NavigationOptions): ResolvedOptions {
   }
 
   return {
+    language: pickLanguage(user.language),
     variant: pickEnum("variant", variant, VARIANTS, defaultOptions.variant),
     mobile: pickEnum("mobile", user.mobile, MOBILE, defaultOptions.mobile),
     align: pickEnum("align", user.align, ALIGNS, defaultOptions.align),

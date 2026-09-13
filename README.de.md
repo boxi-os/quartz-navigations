@@ -25,6 +25,8 @@ Instanz wählt eigene Ebenen, Sortierung und Darstellung.
   [Lucide](https://lucide.dev)-Icons
 - Funktioniert ohne JavaScript; das kleine Client-Script ergänzt gemerkten Ordnerzustand,
   Hover-Menüs und die Scroll-Sperre
+- Mehrsprachige Sites mit quartz-multilanguage: eine Navigation je Seitensprache, egal wie die
+  Sprachen abgelegt sind
 - Breakpoints kommen aus `quartz/styles/variables.scss` der Site, nicht fest verdrahtet
 
 ## Installation
@@ -105,6 +107,7 @@ Standardmäßig ausgeblendet: der Ordner `tags`, `unlisted`-Seiten, Entwürfe un
 
 | Option                 | Typ                                                                                                                | Standard                                                                                               | Beschreibung                                                                                                                                                                                                                                                               |
 | ---------------------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `language`             | `"auto" \| "all" \| string`                                                                                        | `"auto"`                                                                                               | Zusammenspiel mit quartz-multilanguage: der Baum in der Sprache der aktuellen Seite, `all` für alle Sprachen, oder ein fester Sprachcode. Siehe „Mehrsprachige Sites“.                                                                                                     |
 | `variant`              | `"tree" \| "bar" \| "accordion" \| "dropdown" \| "flyout" \| "tabs" \| "mega" \| "columns" \| "select" \| "pager"` | `"tree"`                                                                                               | Darstellung, siehe unten. Jede Variante bringt ihre Ausrichtung mit.                                                                                                                                                                                                       |
 | `mobile`               | `"same" \| "accordion" \| "offcanvas" \| "select" \| "hidden"`                                                     | `"same"`                                                                                               | Darstellung unterhalb des Mobile-Breakpoints.                                                                                                                                                                                                                              |
 | `align`                | `"left" \| "center" \| "right" \| "full"`                                                                          | `"left"`                                                                                               | Ausrichtung der obersten Zeile von `bar`, `dropdown`, `mega` und `tabs`; `full` verteilt die Einträge über die ganze Breite. Andere Varianten ignorieren die Option.                                                                                                       |
@@ -337,14 +340,46 @@ schaltet alles ab.
 - `prefers-reduced-motion` schaltet alle Übergänge und Animationen ab; Fokusringe nutzen die
   Themefarbe `--secondary`.
 
+## Mehrsprachige Sites
+
+Zusammen mit [quartz-multilanguage](https://github.com/boxi-os/quartz-multilanguage) zeigt jede
+Navigation den Baum **in der Sprache der aktuellen Seite**, ohne zusätzliche Konfiguration
+(`language: auto`, die Vorgabe). Alle Aufbauten des Plugins werden unterstützt:
+
+| Aufbau                        | Beispiel                                                       |
+| ----------------------------- | -------------------------------------------------------------- |
+| Sprachordner                  | `de/docs/setup.md`, `en/docs/setup.md`                         |
+| Standardsprache in der Wurzel | `docs/setup.md`, `en/docs/setup.md`                            |
+| Sprachsuffix im Dateinamen    | `docs/Setup.md`, `docs/Setup.en.md`                            |
+| Sprache im Frontmatter        | `blog/hallo.md` mit `lang: de`, `blog/hello.md` mit `lang: en` |
+
+So funktioniert es: quartz-multilanguage legt an jeder Seite ihre Sprache und einen Pfad ohne
+Sprachordner oder Suffix ab (`en/docs/setup` und `docs/setup.en` werden beide zu `docs/setup`).
+Die Navigation ordnet die Seiten nach diesem Pfad ein und verlinkt die echten Seiten; jeder Aufbau
+ergibt so je Sprache denselben Baum. Erzeugte Ordnerseiten, die keine Sprache tragen, werden über
+die Seiten daneben zugeordnet.
+
+- **Pfade in den Optionen sind sprachneutral.** `rootPath: docs`, `order: { docs: [intro] }`,
+  `nodeIcons` und `include`/`exclude` gelten für jede Sprache; `include`/`exclude` treffen
+  zusätzlich den echten Slug, `exclude: [en]` funktioniert also weiter.
+- **Die Wörter des Plugins und die alphabetische Sortierung folgen der Seitensprache**
+  („Previous“ auf englischen Seiten, „Zurück“ auf deutschen), mit dem `locale` der Site, wenn es
+  dieselbe Sprache ist.
+- **Ein Eintrag je Navigation** genügt; eine Instanz je Sprache ist nicht nötig.
+- Die Startseite eines Sprachordners (`de/index.md`) gewinnt gegen eine `index.md` in der Wurzel,
+  die die Standardsprache nur geerbt hat.
+- `language: all` ignoriert Sprachen (das Verhalten vor 0.3). `language: de` zeigt immer den Baum
+  dieser Sprache.
+- Grenzen: Seiten ohne eigene Sprache und ohne Sprachseiten daneben (Tag-Seiten) bekommen die
+  Sprache der Site. Mit der Sprache im Frontmatter gibt es keine Pfadkonvention; die Startseite einer
+  Sprache ist dann eine gewöhnliche Seite, außer sie ist eine `index.md`.
+
 ## Zusammenspiel mit anderen Plugins
 
 - **Explorer**: beide können nebeneinander laufen. Dieses Plugin nutzt eigene Klassennamen, die
   Explorer-Styles greifen also nicht.
 - **Breadcrumbs**: unberührt; sie lesen dieselben Ordnertitel.
-- **quartz-multilanguage**: bei Sprachordnern (`de/…`, `en/…`) `scope: section` für eine
-  Navigation je Sprache verwenden, oder eine Instanz je Sprache mit `rootPath: de` / `rootPath: en`;
-  `hideOutsideRoot` blendet die jeweils falsche aus.
+- **quartz-multilanguage**: ohne Zutun unterstützt, siehe „Mehrsprachige Sites“.
 
 Die englische Fassung dieser README ist [README.md](README.md).
 
@@ -371,7 +406,7 @@ verstecken.
 
 ## Wie gut ist der Code geprüft?
 
-`npm run check` führt Typecheck, Linter, Formatter und 85 Tests aus; die CI macht bei jedem Push
+`npm run check` führt Typecheck, Linter, Formatter und 99 Tests aus; die CI macht bei jedem Push
 dasselbe, baut das Plugin und prüft, dass das committete `dist/` dem Build entspricht. Das ist keine Garantie, aber etwas, das du selbst ausführen kannst, bevor du
 dem Plugin vertraust.
 

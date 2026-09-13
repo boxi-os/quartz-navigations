@@ -30,10 +30,18 @@ component.
 
 ## Data Model
 
-- `NavNode` (`src/types.ts`): `kind` (`folder` | `page`), `slug` (folders: `docs/index`, root:
-  `index`), `segment`, `title`, `parentSlug`, `depth`, `children`, `hasIndex`, `isVirtual`,
+- `NavNode` (`src/types.ts`): `kind` (`folder` | `page`), `slug` (the link target; folders:
+  their index page, `docs/index`, root: `index`), `path` (language-neutral: `docs/setup`, `docs`,
+  ``), `segment`, `title`, `parentSlug`, `depth`, `children`, `hasIndex`, `isVirtual`,
   optional `order`, `listOrder`, `prefixOrder`, `date`, `icon`.
-- `NavTree`: `root` plus `bySlug` map for ancestor lookups.
+- `NavTree`: `root`, `bySlug` (real slugs, for the current page and ancestors), `folders` (by
+  path, for `rootPath`) and `language` when built for one.
+- Languages (`src/language.ts`): with quartz-multilanguage every page carries
+  `fileData.multilanguage.{lang, baseSlug, source}`. A language tree keeps the pages of that
+  language (plus generated pages mapped through their directory) and keys them by `baseSlug`;
+  on key collisions a folder/suffix/frontmatter language beats an inherited default language,
+  which beats a generated page. The component picks the page language (`language: auto`) and
+  uses it for the tree cache key, the collator and the UI strings.
 - `Scope` (`src/scope.ts`): `base` (the `rootPath` folder), `root` (folder whose children are
   rendered), `current` (node of the current page, if visible), `trail` (ancestor slugs).
 - Markup contract (see README, "Markup and classes"): `nav.quartz-nav` with variant and mobile
@@ -66,7 +74,8 @@ compact JSON string. `vitest.config.ts` provides the same loaders for tests. `di
   - `options.ts`: defaults, `resolveOptions()`, `normalizePath()`, `treeOptionsKey()`.
   - `frontmatter.ts`: narrowing helpers for frontmatter values.
   - `tree.ts`: `buildTree()`, `treeFromFiles()`. `sort.ts`: `compareNodes()`.
-  - `scope.ts`: `resolveScope()`, `chainOf()`, `flatten()`, `pagerNeighbours()`.
+  - `scope.ts`: `resolveScope()`, `chainOf()`, `flatten()`, `pagerNeighbours()`, `pathOfSlug()`.
+  - `language.ts`: `languageIndex()`, `placements()`, `languageOfPage()`, `localeFor()`.
   - `links.ts`: `hrefFor()`, `linkTarget()`, `firstPage()`.
   - `icons.tsx`: `LucideIcon`, `lucideName()`, `hasLucideIcon()`, `lucideIconNames()`.
   - `breakpoints.ts`: `parseBreakpoints()`, `resolveBreakpoints()`, `applyBreakpoints()`.

@@ -82,6 +82,13 @@ export interface NavigationBreakpoints {
 }
 
 export interface NavigationOptions {
+  /**
+   * Cooperation with quartz-multilanguage. `auto` shows the tree of the current page's language,
+   * with paths (`rootPath`, `order`, `nodeIcons`, `include`, `exclude`) written without the
+   * language folder or suffix; without quartz-multilanguage it changes nothing. `all` ignores
+   * languages. A language code (`de`) always shows that language. Defaults to `auto`.
+   */
+  language?: string;
   /** Presentation; each variant implies its orientation. Defaults to `tree`. */
   variant?: NavVariant;
   /** Presentation below the mobile breakpoint. Defaults to `same`. */
@@ -208,6 +215,8 @@ export interface NavigationOptions {
 }
 
 export interface ResolvedOptions {
+  /** `auto`, `all` or a lower-case language code. */
+  language: string;
   variant: NavVariant;
   mobile: NavMobile;
   align: NavAlign;
@@ -258,7 +267,10 @@ export interface ResolvedOptions {
 /** One entry of the navigation tree. Folders carry the slug of their index page (`docs/index`). */
 export interface NavNode {
   kind: "folder" | "page";
+  /** Slug the node links to (a folder's index page, or `docs/index` when it has none). */
   slug: string;
+  /** Language-neutral path: `docs/setup`, `docs` for a folder, `` for the root. */
+  path: string;
   /** Last slug segment; empty for the site root. */
   segment: string;
   title: string;
@@ -281,4 +293,8 @@ export interface NavNode {
 export interface NavTree {
   root: NavNode;
   bySlug: Map<string, NavNode>;
+  /** Folders by language-neutral path. */
+  folders: Map<string, NavNode>;
+  /** Language of the tree when it was built for one. */
+  language?: string;
 }

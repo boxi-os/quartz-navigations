@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Multilingual sites with quartz-multilanguage. The new option `language` (default `auto`) shows
+  the tree of the current page's language for every layout of that plugin: language folders,
+  the default language in the root, language suffixes in file names and languages in the
+  frontmatter. Pages are placed by their language-neutral path (`baseSlug`), generated folder
+  pages are assigned through the pages next to them, and a language folder's start page wins over
+  a root `index.md` that only inherited the default language. `language: all` ignores languages,
+  a language code fixes one.
+- The plugin's words ("Previous", "Overview", …) and alphabetical sorting follow the page
+  language on multilingual sites.
+- `NavNode.path` (language-neutral path) and `NavTree.folders` (folders by path).
+
+### Changed
+
+- `rootPath`, `order`, `nodeIcons`, `include` and `exclude` refer to language-neutral paths on
+  multilingual sites; `include` and `exclude` also match the real slug. Sites without
+  quartz-multilanguage are unaffected.
+
 ## [0.2.1] - 2026-09-13
 
 ### Fixed

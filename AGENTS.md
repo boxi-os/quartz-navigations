@@ -11,7 +11,7 @@ See `ARCHITECTURE.md` for the lifecycle and file map, `README.md` for user-facin
 ## Files to Modify
 
 - `src/options.ts`: option defaults and validation (single source of truth for defaults).
-- `src/tree.ts`, `src/sort.ts`, `src/scope.ts`, `src/links.ts`: pure tree logic — add tests in
+- `src/tree.ts`, `src/sort.ts`, `src/scope.ts`, `src/links.ts`, `src/language.ts`: pure tree logic — add tests in
   `test/` for every change.
 - `src/components/Navigation.tsx` (constructor) and `src/components/render.tsx` (markup).
 - `src/components/styles/navigations.scss`: the single stylesheet; every tunable value is a

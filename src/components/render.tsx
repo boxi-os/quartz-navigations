@@ -354,7 +354,7 @@ function selectEl(ctx: RenderContext, id: string) {
   for (const child of root.children) {
     if (child.kind === "folder" && child.children.length > 0 && levelAllowed(2, ctx)) {
       const inner = nodes.filter(
-        (n) => n.slug !== child.slug && n.slug.startsWith(child.slug.replace(/index$/, "")),
+        (n) => n.slug !== child.slug && n.path.startsWith(`${child.path}/`),
       );
       const indexTarget = linkTarget(child, ctx.opts);
       items.push(

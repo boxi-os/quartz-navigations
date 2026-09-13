@@ -25,6 +25,8 @@ Each instance picks its own levels, sorting and presentation.
   chevrons, burger and pager arrows are [Lucide](https://lucide.dev) icons too
 - Works without JavaScript; the small client script adds remembered folder state, hover menus
   and the scroll lock
+- Multilingual sites with quartz-multilanguage: one navigation per page language, whichever way
+  the languages are laid out
 - Breakpoints are read from your site's `quartz/styles/variables.scss`, not hard-coded
 
 ## Installation
@@ -105,6 +107,7 @@ Hidden by default: the `tags` folder, `unlisted` pages, drafts and the 404 page.
 
 | Option                 | Type                                                                                                               | Default                                                                                                | Description                                                                                                                                                                                                                                              |
 | ---------------------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `language`             | `"auto" \| "all" \| string`                                                                                        | `"auto"`                                                                                               | Cooperation with quartz-multilanguage: the tree of the current page's language, `all` for every language, or a fixed language code. See "Multilingual sites".                                                                                            |
 | `variant`              | `"tree" \| "bar" \| "accordion" \| "dropdown" \| "flyout" \| "tabs" \| "mega" \| "columns" \| "select" \| "pager"` | `"tree"`                                                                                               | Presentation, see below. Each variant implies its orientation.                                                                                                                                                                                           |
 | `mobile`               | `"same" \| "accordion" \| "offcanvas" \| "select" \| "hidden"`                                                     | `"same"`                                                                                               | Presentation below the mobile breakpoint.                                                                                                                                                                                                                |
 | `align`                | `"left" \| "center" \| "right" \| "full"`                                                                          | `"left"`                                                                                               | Alignment of the top row of `bar`, `dropdown`, `mega` and `tabs`; `full` spreads the entries over the whole width. Ignored by the other variants.                                                                                                        |
@@ -332,14 +335,45 @@ do not animate on page load. Set `--quartz-nav-transition: 0s` to switch everyth
 - `prefers-reduced-motion` disables all transitions and animations; focus rings use the theme's
   `--secondary` color.
 
+## Multilingual sites
+
+Together with [quartz-multilanguage](https://github.com/boxi-os/quartz-multilanguage) every
+navigation shows the tree of the **current page's language**, with no extra configuration
+(`language: auto`, the default). All of its layouts are supported:
+
+| Layout                           | Example                                                          |
+| -------------------------------- | ---------------------------------------------------------------- |
+| Language folders                 | `de/docs/setup.md`, `en/docs/setup.md`                           |
+| Default language in the root     | `docs/setup.md`, `en/docs/setup.md`                              |
+| Language suffix in the file name | `docs/Setup.md`, `docs/Setup.en.md`                              |
+| Language in the frontmatter      | `blog/hallo.md` with `lang: de`, `blog/hello.md` with `lang: en` |
+
+How it works: quartz-multilanguage stores the page language and a path without the language
+folder or suffix (`en/docs/setup` and `docs/setup.en` both become `docs/setup`) on every page.
+The navigation places pages by that path and links to the real pages, so every layout yields the
+same tree per language. Generated folder pages, which carry no language, are assigned through the
+pages next to them.
+
+- **Paths in the options are language-neutral.** `rootPath: docs`, `order: { docs: [intro] }`,
+  `nodeIcons` and `include`/`exclude` apply to every language; `include`/`exclude` also match the
+  real slug, so `exclude: [en]` still works.
+- **The plugin's words and alphabetical sorting follow the page language** ("Previous" on English
+  pages, "Zurück" on German ones), using the site's `locale` when it is the same language.
+- **One entry per navigation** is enough; there is no need for one instance per language.
+- A language folder's start page (`de/index.md`) wins over a root `index.md` that only inherited
+  the default language.
+- `language: all` ignores languages (the behaviour before 0.3). `language: de` always shows that
+  language's tree.
+- Limits: pages without a language of their own and without language pages next to them (tag
+  pages) get the site's language. With language in the frontmatter there is no path convention,
+  so a language's start page is an ordinary page unless it is an `index.md`.
+
 ## Working with other plugins
 
 - **Explorer**: both can coexist. This plugin uses its own class names, so the explorer's styles
   never leak in.
 - **Breadcrumbs**: unaffected; they read the same folder titles.
-- **quartz-multilanguage**: with language folders (`de/…`, `en/…`) use `scope: section` for a
-  per-language navigation, or one instance per language with `rootPath: de` / `rootPath: en`;
-  `hideOutsideRoot` hides the wrong one.
+- **quartz-multilanguage**: supported out of the box, see "Multilingual sites".
 
 A German version of this README is in [README.de.md](README.de.md).
 
@@ -365,7 +399,7 @@ am aware that vibe coding is a contested subject, and I do not want to hide anyt
 
 ## How well is the code checked?
 
-`npm run check` runs the typecheck, the linter, the formatter and 85 tests; CI runs the same on
+`npm run check` runs the typecheck, the linter, the formatter and 99 tests; CI runs the same on
 every push, builds the plugin and verifies that the committed `dist/` matches the build. That is not a guarantee, but it is something you can run yourself before
 you trust the plugin.
 

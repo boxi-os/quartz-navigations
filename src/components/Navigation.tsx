@@ -5,8 +5,9 @@ import type {
 } from "@quartz-community/types";
 import { applyBreakpoints, resolveBreakpoints } from "../breakpoints";
 import { i18n } from "../i18n";
+import { languageIndex, languageOfPage, localeFor, placementIn } from "../language";
 import { resolveOptions } from "../options";
-import { resolveScope } from "../scope";
+import { pathOfSlug, resolveScope } from "../scope";
 import { type FileData, treeFromFiles } from "../tree";
 import type { NavigationOptions } from "../types";
 import { shortHash } from "../util/hash";
@@ -28,9 +29,21 @@ export default ((userOpts?: NavigationOptions) => {
     if (!slug) return null;
 
     const files = (Array.isArray(allFiles) ? allFiles : []) as FileData[];
-    const locale = typeof cfg?.locale === "string" ? cfg.locale : undefined;
-    const tree = treeFromFiles(files, opts, locale);
-    const scope = resolveScope(tree, slug, opts);
+    const siteLocale = typeof cfg?.locale === "string" ? cfg.locale : undefined;
+    const langs = languageIndex(files);
+    const page = (fileData ?? {}) as FileData;
+    const language =
+      opts.language === "all"
+        ? undefined
+        : opts.language === "auto"
+          ? languageOfPage(page, langs, siteLocale)
+          : (langs.languages.find((l) => l === opts.language) ??
+            langs.languages.find((l) => l === opts.language.split(/[-_]/)[0]) ??
+            opts.language);
+    const locale = language ? localeFor(language, siteLocale) : siteLocale;
+    const tree = treeFromFiles(files, opts, locale, language);
+    const key = language ? placementIn(page, langs, language)?.key : undefined;
+    const scope = resolveScope(tree, slug, opts, pathOfSlug(key ?? slug));
     if (!scope) return null;
 
     const ctx: RenderContext = {

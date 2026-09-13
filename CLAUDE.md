@@ -37,6 +37,11 @@ Run tests matching a name: `npx vitest run -t "accordion"`
 - `src/tree.ts` — `buildTree(allFiles, opts)` turns Quartz's `allFiles` into `NavNode`s (folders
   carry the slug of their index page, `docs/index`); `treeFromFiles()` caches per `allFiles`
   identity and tree options. `src/sort.ts` — comparators (manual cascade, alphabetical, date).
+- `src/language.ts` — cooperation with quartz-multilanguage: reads `fileData.multilanguage`
+  (`lang`, `baseSlug`), learns which directory belongs to which language (for generated folder
+  pages without language data) and picks the page language. `buildTree(…, language)` then places
+  pages by their language-neutral key; `NavNode.slug` stays the real link target, `NavNode.path`
+  is the key used by `rootPath`, `order`, `nodeIcons` and scope checks.
 - `src/scope.ts` — `resolveScope(tree, slug, opts)` picks the subtree to render (`rootPath`,
   `scope`) and the active trail; `flatten()` / `pagerNeighbours()` for `select` and `pager`.
 - `src/links.ts` — `hrefFor()` via `resolveRelative`, `linkTarget()` for folders.

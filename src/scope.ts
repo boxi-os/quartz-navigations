@@ -28,14 +28,23 @@ function parentOf(tree: NavTree, node: NavNode): NavNode | undefined {
   return node.parentSlug !== undefined ? tree.bySlug.get(node.parentSlug) : undefined;
 }
 
+/** `docs/index` → `docs`, `index` → ``. */
+export function pathOfSlug(slug: string): string {
+  return slug === "index" ? "" : slug.replace(/\/index$/, "");
+}
+
+/**
+ * `currentPath` is the language-neutral path of the current page (see `language.ts`); it
+ * defaults to the path of `currentSlug`.
+ */
 export function resolveScope(
   tree: NavTree,
   currentSlug: string,
   opts: ResolvedOptions,
+  currentPath: string = pathOfSlug(currentSlug),
 ): Scope | undefined {
-  const baseSlug = opts.rootPath ? `${opts.rootPath}/index` : "index";
-  const base = tree.bySlug.get(baseSlug);
-  if (!base || base.kind !== "folder") {
+  const base = tree.folders.get(opts.rootPath);
+  if (!base) {
     warnOnce(
       `root-path:${opts.rootPath}`,
       `\`rootPath: ${opts.rootPath}\` is not a folder with visible pages.`,
@@ -45,8 +54,8 @@ export function resolveScope(
   if (
     opts.rootPath &&
     opts.hideOutsideRoot &&
-    currentSlug !== baseSlug &&
-    !currentSlug.startsWith(`${opts.rootPath}/`)
+    currentPath !== opts.rootPath &&
+    !currentPath.startsWith(`${opts.rootPath}/`)
   ) {
     return undefined;
   }
@@ -55,7 +64,7 @@ export function resolveScope(
   const current = chain[0];
   const trail = new Set(chain.slice(1).map((n) => n.slug));
   const inBase = (n: NavNode) =>
-    !opts.rootPath || n.slug === base.slug || n.slug.startsWith(`${opts.rootPath}/`);
+    !opts.rootPath || n.path === opts.rootPath || n.path.startsWith(`${opts.rootPath}/`);
 
   let root: NavNode | undefined;
   switch (opts.scope) {
