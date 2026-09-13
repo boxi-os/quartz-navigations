@@ -482,7 +482,8 @@ export function renderNavigation(ctx: RenderContext) {
             <LucideIcon name={opts.iconNames.close} size="1.5em" />
           </label>
         )}
-        {opts.showScopeRoot && (
+        {/* A language tree may lack a start page: no row without a name. */}
+        {opts.showScopeRoot && root.title && (
           <div class="quartz-nav__root">
             {titleEl(root, ctx, {
               className: "quartz-nav__root-link",

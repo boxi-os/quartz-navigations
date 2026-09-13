@@ -92,6 +92,7 @@
     "dependencies": [],
     "defaultEnabled": true,
     "defaultOptions": {
+      "language": "auto",
       "variant": "tree",
       "mobile": "same",
       "align": "left",

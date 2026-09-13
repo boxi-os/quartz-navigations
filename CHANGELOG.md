@@ -14,8 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the default language in the root, language suffixes in file names and languages in the
   frontmatter. Pages are placed by their language-neutral path (`baseSlug`), generated folder
   pages are assigned through the pages next to them, and a language folder's start page wins over
-  a root `index.md` that only inherited the default language. `language: all` ignores languages,
-  a language code fixes one.
+  a root `index.md`, even one with the language in its frontmatter. Pages that belong to several
+  languages or none (shared folder pages, tag pages) get the default language, as in
+  quartz-multilanguage. `language: all` ignores languages, a language code fixes one; a code no
+  page carries is reported in the build log.
 - The plugin's words ("Previous", "Overview", …) and alphabetical sorting follow the page
   language on multilingual sites.
 - `NavNode.path` (language-neutral path) and `NavTree.folders` (folders by path).
@@ -23,8 +25,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - `rootPath`, `order`, `nodeIcons`, `include` and `exclude` refer to language-neutral paths on
-  multilingual sites; `include` and `exclude` also match the real slug. Sites without
-  quartz-multilanguage are unaffected.
+  multilingual sites; `include` and `exclude` also match the real slug. A `rootPath` naming a
+  language folder (`rootPath: en`) keeps working: it shows that language's tree from the folder
+  on, only on pages inside it. Sites without quartz-multilanguage are unaffected.
+
+### Fixed
+
+- A folder whose `_index.md` has no title is named after the folder instead of `_index`.
 
 ## [0.2.1] - 2026-09-13
 

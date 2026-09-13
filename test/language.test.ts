@@ -26,7 +26,8 @@ function ml(
   baseSlug: string,
   frontmatter: Record<string, unknown> = {},
 ): FileData {
-  const source = slug === baseSlug ? "default" : "folder";
+  const source =
+    typeof frontmatter.lang === "string" ? "frontmatter" : slug === baseSlug ? "default" : "folder";
   return page(slug, relativePath, frontmatter, {
     multilanguage: { lang, baseSlug, source },
   });
@@ -75,8 +76,9 @@ function suffixSite(): FileData[] {
 function frontmatterSite(): FileData[] {
   return [
     ml("index", "index.md", "de", "index", { title: "Start" }),
-    ml("blog/hallo", "blog/hallo.md", "de", "blog/hallo", { title: "Hallo" }),
-    ml("blog/hello", "blog/hello.md", "en", "blog/hello", { title: "Hello" }),
+    ml("blog/hallo", "blog/hallo.md", "de", "blog/hallo", { title: "Hallo", lang: "de" }),
+    ml("blog/hello", "blog/hello.md", "en", "blog/hello", { title: "Hello", lang: "en" }),
+    virtualFolder("blog/index", "blog"),
   ];
 }
 
@@ -113,12 +115,18 @@ describe("languageIndex", () => {
     expect(languageIndex(files)).toBe(index);
   });
 
-  it("finds the language of generated pages, preferring the site locale when ambiguous", () => {
+  it("finds the language of generated pages, preferring the default language when ambiguous", () => {
+    // Like quartz-multilanguage: the language of unmarked pages, whatever the site locale.
     const suffix = languageIndex(suffixSite());
+    expect(suffix.defaultLanguage).toBe("de");
     const shared = virtualFolder("docs/index", "docs");
-    expect(languageOfPage(shared, suffix, "en-US")).toBe("en");
-    expect(languageOfPage(shared, suffix, "de-DE")).toBe("de");
-    expect(languageOfPage({ slug: "tags/foo" }, suffix, "de-DE")).toBe("de");
+    expect(languageOfPage(shared, suffix, "en-US")).toBe("de");
+    expect(languageOfPage({ slug: "tags/foo" }, suffix, "en-US")).toBe("de");
+    // Every page marked (language folders only): the site locale decides.
+    const folders = languageIndex(folderSite());
+    expect(folders.defaultLanguage).toBeUndefined();
+    expect(languageOfPage({ slug: "tags/foo" }, folders, "en-US")).toBe("en");
+    expect(languageOfPage({ slug: "tags/foo" }, folders, "de-DE")).toBe("de");
     expect(languageOfPage({ slug: "x" }, languageIndex([page("x", "x.md")]), "de-DE")).toBe(
       undefined,
     );
@@ -153,6 +161,16 @@ describe("language trees", () => {
     expect(de.root.slug).toBe("de/index");
     expect(de.root.title).toBe("Start");
     expect(tree([...folderSite(), files[0]!], "de").root.slug).toBe("de/index");
+  });
+
+  it("a language folder's start page beats a root index.md with the language in its frontmatter", () => {
+    const root = ml("index", "index.md", "de", "index", { title: "Sprachwahl", lang: "de" });
+    for (const files of [
+      [root, ...folderSite()],
+      [...folderSite(), root],
+    ]) {
+      expect(tree(files, "de").root.slug).toBe("de/index");
+    }
   });
 
   it("default language in the root: the other language's folder is not part of it", () => {
@@ -216,7 +234,7 @@ describe("language trees", () => {
     ]);
     // hideOutsideRoot compares language-neutral paths.
     const t = buildTree(files, opts, "en", "en");
-    expect(resolveScope(t, "en/index", opts, "")).toBeUndefined();
+    expect(resolveScope(t, "en/index", opts, "index")).toBeUndefined();
   });
 
   it("the pager stays inside the page's language", () => {
@@ -227,7 +245,7 @@ describe("language trees", () => {
     expect(pagerNeighbours(de, last, opts)).toMatchObject({ prev: { slug: "kapitel/eins" } });
     expect(pagerNeighbours(de, last, opts).next).toBeUndefined();
     const en = buildTree(files, opts, "en", "en");
-    const home = resolveScope(en, "en/index", opts, "")!;
+    const home = resolveScope(en, "en/index", opts, "index")!;
     expect(pagerNeighbours(en, home, opts).next?.slug).toBe("en/chapter/index");
   });
 });
@@ -271,6 +289,10 @@ function render(opts: NavigationOptions, files: FileData[], slug: string, locale
   ) as VNode | null;
 }
 
+/** Build warnings apart from the one about the test environment's missing variables.scss. */
+const warnings = () =>
+  warn.mock.calls.map((c) => String(c[0])).filter((m) => !m.includes("variables.scss"));
+
 const links = (nav: VNode | null) =>
   walk(nav)
     .filter((v) => v.type === "a")
@@ -305,6 +327,43 @@ describe("Navigation with quartz-multilanguage", () => {
   it("a fixed language shows that language on every page", () => {
     const nav = render({ language: "en-US", depth: 1 }, rootSite(), "kapitel/eins")!;
     expect(links(nav)).toEqual(["chapter"]);
+  });
+
+  it("warns about a fixed language no page carries", () => {
+    expect(render({ language: "fr" }, rootSite(), "kapitel/eins")).toBeNull();
+    expect(warnings()).toEqual(["[navigations] `language: fr` matches no page language (de, en)."]);
+    render({ language: "fr" }, [page("x", "x.md")], "x");
+    expect(warnings()).toHaveLength(1);
+  });
+
+  it("rootPath naming a language folder keeps working, as before the language mode", () => {
+    const files = rootSite();
+    const en = { rootPath: "en", variant: "tree" } as const;
+    expect(render(en, files, "kapitel/eins")).toBeNull();
+    const nav = render(en, files, "en/chapter/one")!;
+    expect(links(nav)).toEqual(["chapter", "One"]);
+    expect(nav.props["aria-label"]).toBe("Main navigation");
+    expect(render({ variant: "pager", rootPath: "en" }, files, "en/index")).not.toBeNull();
+    // The German counterpart of the old configuration.
+    expect(render({ exclude: ["en"] }, files, "en/chapter/one")).toBeNull();
+    expect(links(render({ exclude: ["en"] }, files, "kapitel/eins"))).toEqual([
+      "Kapitel",
+      "Eins",
+      "Zwei",
+    ]);
+    // Without hideOutsideRoot the English tree shows on German pages, too.
+    const everywhere = render({ rootPath: "en", hideOutsideRoot: false }, files, "kapitel/eins");
+    expect(links(everywhere)).toEqual(["chapter", "One"]);
+    expect(warnings()).toEqual([]);
+  });
+
+  it("showScopeRoot renders no nameless row for a language tree without a start page", () => {
+    const files = frontmatterSite();
+    const en = walk(render({ showScopeRoot: true }, files, "blog/hello"));
+    expect(en.some((v) => String(v.props.class).includes("quartz-nav__root-link"))).toBe(false);
+    const de = walk(render({ showScopeRoot: true }, files, "blog/hallo"));
+    const rootLink = de.find((v) => String(v.props.class).includes("quartz-nav__root-link"));
+    expect(text(rootLink)).toBe("Start");
   });
 
   it("rejects values that are no language", () => {

@@ -82,6 +82,20 @@ describe("resolveScope", () => {
     ).toBe("docs/guides/index");
   });
 
+  it("hideOutsideRoot hides the navigation on a page next to the folder of the same name", () => {
+    const files = [
+      page("index", "index.md", { title: "Home" }),
+      page("docs", "docs.md", { title: "Docs page" }),
+      page("docs/index", "docs/index.md", { title: "Docs" }),
+      page("docs/a", "docs/a.md", { title: "A" }),
+    ];
+    const opts = resolveOptions({ rootPath: "docs" });
+    const tree = buildTree(files, opts);
+    expect(resolveScope(tree, "docs", opts)).toBeUndefined();
+    expect(resolveScope(tree, "docs/index", opts)?.root.slug).toBe("docs/index");
+    expect(resolveScope(tree, "docs/a", opts)?.root.slug).toBe("docs/index");
+  });
+
   it("warns and renders nothing for an unknown rootPath", () => {
     expect(scope("index", { rootPath: "nope" }).scope).toBeUndefined();
     expect(warn).toHaveBeenCalledTimes(1);

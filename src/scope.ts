@@ -28,20 +28,15 @@ function parentOf(tree: NavTree, node: NavNode): NavNode | undefined {
   return node.parentSlug !== undefined ? tree.bySlug.get(node.parentSlug) : undefined;
 }
 
-/** `docs/index` → `docs`, `index` → ``. */
-export function pathOfSlug(slug: string): string {
-  return slug === "index" ? "" : slug.replace(/\/index$/, "");
-}
-
 /**
- * `currentPath` is the language-neutral path of the current page (see `language.ts`); it
- * defaults to the path of `currentSlug`.
+ * `currentKey` is the language-neutral slug of the current page (see `language.ts`); it
+ * defaults to `currentSlug`.
  */
 export function resolveScope(
   tree: NavTree,
   currentSlug: string,
   opts: ResolvedOptions,
-  currentPath: string = pathOfSlug(currentSlug),
+  currentKey: string = currentSlug,
 ): Scope | undefined {
   const base = tree.folders.get(opts.rootPath);
   if (!base) {
@@ -51,12 +46,8 @@ export function resolveScope(
     );
     return undefined;
   }
-  if (
-    opts.rootPath &&
-    opts.hideOutsideRoot &&
-    currentPath !== opts.rootPath &&
-    !currentPath.startsWith(`${opts.rootPath}/`)
-  ) {
+  // Keys, not paths: `docs.md` next to `docs/` has the path `docs` but lies outside it.
+  if (opts.rootPath && opts.hideOutsideRoot && !currentKey.startsWith(`${opts.rootPath}/`)) {
     return undefined;
   }
 

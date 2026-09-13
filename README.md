@@ -352,21 +352,29 @@ How it works: quartz-multilanguage stores the page language and a path without t
 folder or suffix (`en/docs/setup` and `docs/setup.en` both become `docs/setup`) on every page.
 The navigation places pages by that path and links to the real pages, so every layout yields the
 same tree per language. Generated folder pages, which carry no language, are assigned through the
-pages next to them.
+pages next to them. (One exception: with a `detection` order in quartz-multilanguage that puts
+`frontmatter` before `folder`, pages in a language folder with `lang` in the frontmatter keep the
+folder in their path.)
 
 - **Paths in the options are language-neutral.** `rootPath: docs`, `order: { docs: [intro] }`,
   `nodeIcons` and `include`/`exclude` apply to every language; `include`/`exclude` also match the
   real slug, so `exclude: [en]` still works.
+- **`rootPath` naming a language folder** (`rootPath: en`, as in configurations with one entry
+  per language) shows that language's tree from the folder on, and with `hideOutsideRoot` only on
+  pages inside the folder. `include: [en]` has the same effect.
 - **The plugin's words and alphabetical sorting follow the page language** ("Previous" on English
   pages, "Zurück" on German ones), using the site's `locale` when it is the same language.
 - **One entry per navigation** is enough; there is no need for one instance per language.
-- A language folder's start page (`de/index.md`) wins over a root `index.md` that only inherited
-  the default language.
-- `language: all` ignores languages (the behaviour before 0.3). `language: de` always shows that
-  language's tree.
-- Limits: pages without a language of their own and without language pages next to them (tag
-  pages) get the site's language. With language in the frontmatter there is no path convention,
-  so a language's start page is an ordinary page unless it is an `index.md`.
+- A language folder's start page (`de/index.md`) wins over a root `index.md`, even one with
+  `lang: de` in its frontmatter.
+- `language: all` ignores languages (the behaviour up to 0.2). `language: de` always shows that
+  language's tree; a code no page carries renders nothing and is reported in the build log.
+- Pages that belong to several languages or none (a folder page shared by suffix pages, tag
+  pages) get the default language, like quartz-multilanguage decides for them. Without pages in
+  the default language, the site's `locale` decides.
+- Limits: with language in the frontmatter there is no path convention, so a language's start
+  page is an ordinary page unless it is an `index.md`; the other language's tree has no start page
+  (`showHome` and `showScopeRoot` render nothing for it).
 
 ## Working with other plugins
 
@@ -399,7 +407,7 @@ am aware that vibe coding is a contested subject, and I do not want to hide anyt
 
 ## How well is the code checked?
 
-`npm run check` runs the typecheck, the linter, the formatter and 99 tests; CI runs the same on
+`npm run check` runs the typecheck, the linter, the formatter and 105 tests; CI runs the same on
 every push, builds the plugin and verifies that the committed `dist/` matches the build. That is not a guarantee, but it is something you can run yourself before
 you trust the plugin.
 

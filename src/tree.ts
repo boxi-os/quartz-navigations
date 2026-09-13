@@ -92,7 +92,20 @@ function ensureFolder(root: Draft, segments: string[], dirParts: string[] | unde
   return node;
 }
 
-const INDEX_TITLE = /^_?index(\.[\w-]+)?$/i;
+/** File stems that only name a folder's index page: `index`, `_index`, `index.en`. */
+const INDEX_STEM = /^_?index(\.[\w-]+)?$/i;
+
+/**
+ * A title that is no title: `index`, or the file stem of an index page that note-properties
+ * put in when the frontmatter has none (`index.en`, `_index`). An explicit `title: Index` stays.
+ */
+function isIndexTitle(title: string, draft: Draft): boolean {
+  if (title === "index") return true;
+  const data = draft.data;
+  if (typeof data?.filePath !== "string" || typeof data.relativePath !== "string") return false;
+  const stem = stripExtension(data.relativePath.split("/").pop() ?? "");
+  return title === stem && INDEX_STEM.test(stem);
+}
 
 /** Directory names from `relativePath`, aligned with the last `count` key segments. */
 function alignedDirs(relativePath: string | undefined, count: number): string[] | undefined {
@@ -171,7 +184,7 @@ function titleOf(draft: Draft, opts: ResolvedOptions): string {
   const title = readString(fm, "title");
   let fromName = false;
   let out: string;
-  const usable = title !== undefined && !INDEX_TITLE.test(title);
+  const usable = title !== undefined && !isIndexTitle(title, draft);
   if (usable && draft.kind === "page" && draft.rawName !== undefined && title === draft.rawName) {
     out = draft.nameHint ?? title; // the file stem with its language suffix
     fromName = true;

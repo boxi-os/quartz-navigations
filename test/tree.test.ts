@@ -207,6 +207,24 @@ describe("buildTree", () => {
     }
   });
 
+  it("keeps an explicit title `Index`, drops only file stems of index pages", () => {
+    const files = [
+      page("index", "index.md", { title: "Home" }),
+      page("glossar/index", "glossar/index.md", { title: "Index" }),
+      page("glossar/register", "glossar/register.md", { title: "Index" }),
+      // note-properties puts in the file stem when the frontmatter has no title.
+      page("anleitung/index", "Anleitung/_index.md", { title: "_index" }),
+      page("anleitung/x", "Anleitung/x.md"),
+      page("notizen/index", "Notizen/index.md", { title: "index" }),
+      page("notizen/y", "Notizen/y.md"),
+    ];
+    const t = tree({}, files);
+    expect(node(t, "glossar/index").title).toBe("Index");
+    expect(node(t, "glossar/register").title).toBe("Index");
+    expect(node(t, "anleitung/index").title).toBe("Anleitung");
+    expect(node(t, "notizen/index").title).toBe("Notizen");
+  });
+
   it("sorts alphabetically with the site's locale instead of the build machine's", () => {
     // Swedish sorts ä after z; German and the root locale sort it next to a.
     const files = [

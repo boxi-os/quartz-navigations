@@ -14,6 +14,8 @@ export type FileData = Record<string, unknown>;
 export interface LanguageIndex {
   /** Language codes found on the pages, in first-seen order. Empty without quartz-multilanguage. */
   languages: string[];
+  /** Language of the pages without a marker of their own (`source: "default"`), if any. */
+  defaultLanguage?: string;
   /** Slug directory → language → base directory (`en/docs` → `en` → `docs`). */
   dirs: Map<string, Map<string, string>>;
 }
@@ -22,11 +24,11 @@ export interface LanguageIndex {
 export interface Placement {
   lang?: string;
   /**
-   * How much the placement can be trusted when two files claim the same key: `2` for a language
-   * taken from a folder, suffix or frontmatter, `1` for the default language, `0` for a
+   * How much the placement can be trusted when two files claim the same key: `3` for a language
+   * taken from a folder or suffix, `2` from frontmatter, `1` for the default language, `0` for a
    * generated page placed through its directory, or a language-neutral one.
    */
-  rank: 0 | 1 | 2;
+  rank: 0 | 1 | 2 | 3;
   /** Language-neutral slug used to place the file in the tree, e.g. `docs/setup`. */
   key: string;
 }
@@ -66,12 +68,14 @@ export function languageIndex(allFiles: FileData[]): LanguageIndex {
   const hit = cache.get(allFiles);
   if (hit) return hit;
   const languages: string[] = [];
+  let defaultLanguage: string | undefined;
   const dirs = new Map<string, Map<string, string>>();
   for (const data of allFiles) {
     const ml = multilanguageOf(data);
     const slug = typeof data.slug === "string" ? data.slug : "";
     if (!ml || !slug) continue;
     if (!languages.includes(ml.lang)) languages.push(ml.lang);
+    if (ml.source === "default") defaultLanguage ??= ml.lang;
     const slugDirs = dirSegments(slug);
     const baseDirs = dirSegments(ml.baseSlug);
     // A language folder is stripped at the front; a suffix leaves the directories alone.
@@ -87,16 +91,23 @@ export function languageIndex(allFiles: FileData[]): LanguageIndex {
       if (!perLang.has(ml.lang)) perLang.set(ml.lang, baseDirs.slice(0, i - offset).join("/"));
     }
   }
-  const index = { languages, dirs };
+  const index: LanguageIndex = { languages, dirs };
+  if (defaultLanguage) index.defaultLanguage = defaultLanguage;
   cache.set(allFiles, index);
   return index;
+}
+
+function rankOf(source: string | undefined): Placement["rank"] {
+  if (source === "default") return 1;
+  if (source === "frontmatter") return 2;
+  return 3;
 }
 
 /** Every language tree a file belongs to, with its key there. */
 export function placements(data: FileData, index: LanguageIndex): Placement[] {
   const slug = typeof data.slug === "string" ? data.slug : "";
   const ml = multilanguageOf(data);
-  if (ml) return [{ lang: ml.lang, key: ml.baseSlug, rank: ml.source === "default" ? 1 : 2 }];
+  if (ml) return [{ lang: ml.lang, key: ml.baseSlug, rank: rankOf(ml.source) }];
   const name = slug.split("/").pop() ?? slug;
   const mapped = index.dirs.get(dirSegments(slug).join("/"));
   if (!mapped || mapped.size === 0) return [{ key: slug, rank: 0 }];
@@ -120,7 +131,8 @@ function primary(locale: string | undefined): string | undefined {
 
 /**
  * Language of the page being rendered: its own, the one of the directory it sits in, and for
- * pages that belong to several or none, the site's locale if it names one of them.
+ * pages that belong to several or none, the default language like quartz-multilanguage
+ * (`detectLanguage`), else the site's locale if it names one of them.
  */
 export function languageOfPage(
   data: FileData,
@@ -132,8 +144,25 @@ export function languageOfPage(
     .map((p) => p.lang)
     .filter((l): l is string => l !== undefined);
   const candidates = langs.length > 0 ? langs : index.languages;
+  if (index.defaultLanguage && candidates.includes(index.defaultLanguage)) {
+    return index.defaultLanguage;
+  }
   const site = primary(siteLocale);
   return candidates.find((l) => primary(l) === site) ?? candidates[0];
+}
+
+/**
+ * `rootPath` naming a real language directory (`en`, `en/docs`) rather than a language-neutral
+ * path: the language it belongs to and the path it stands for in that language's tree.
+ */
+export function languageDirectory(
+  index: LanguageIndex,
+  dir: string,
+): { lang: string; path: string } | undefined {
+  const mapped = index.dirs.get(dir);
+  if (!mapped || mapped.size !== 1) return undefined;
+  const [lang, path] = [...mapped][0]!;
+  return path === dir ? undefined : { lang, path };
 }
 
 /** Locale for UI strings and sorting: the site's locale when it is this language, else the code. */

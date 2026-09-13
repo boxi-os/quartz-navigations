@@ -39,9 +39,11 @@ component.
 - Languages (`src/language.ts`): with quartz-multilanguage every page carries
   `fileData.multilanguage.{lang, baseSlug, source}`. A language tree keeps the pages of that
   language (plus generated pages mapped through their directory) and keys them by `baseSlug`;
-  on key collisions a folder/suffix/frontmatter language beats an inherited default language,
-  which beats a generated page. The component picks the page language (`language: auto`) and
-  uses it for the tree cache key, the collator and the UI strings.
+  on key collisions a folder/suffix language beats a frontmatter language, which beats an
+  inherited default language, which beats a generated page. The component picks the page
+  language (`language: auto`; pages of several languages or none get the default language, like
+  quartz-multilanguage) and uses it for the tree cache key, the collator and the UI strings. A
+  `rootPath` that names a real language folder (`en`) selects that language and its path there.
 - `Scope` (`src/scope.ts`): `base` (the `rootPath` folder), `root` (folder whose children are
   rendered), `current` (node of the current page, if visible), `trail` (ancestor slugs).
 - Markup contract (see README, "Markup and classes"): `nav.quartz-nav` with variant and mobile

@@ -357,22 +357,30 @@ So funktioniert es: quartz-multilanguage legt an jeder Seite ihre Sprache und ei
 Sprachordner oder Suffix ab (`en/docs/setup` und `docs/setup.en` werden beide zu `docs/setup`).
 Die Navigation ordnet die Seiten nach diesem Pfad ein und verlinkt die echten Seiten; jeder Aufbau
 ergibt so je Sprache denselben Baum. Erzeugte Ordnerseiten, die keine Sprache tragen, werden über
-die Seiten daneben zugeordnet.
+die Seiten daneben zugeordnet. (Eine Ausnahme: Stellt man in quartz-multilanguage `detection` so
+um, dass `frontmatter` vor `folder` kommt, behalten Seiten in einem Sprachordner mit `lang` im
+Frontmatter den Ordner in ihrem Pfad.)
 
 - **Pfade in den Optionen sind sprachneutral.** `rootPath: docs`, `order: { docs: [intro] }`,
   `nodeIcons` und `include`/`exclude` gelten für jede Sprache; `include`/`exclude` treffen
   zusätzlich den echten Slug, `exclude: [en]` funktioniert also weiter.
+- **`rootPath` mit einem Sprachordner** (`rootPath: en`, wie in Konfigurationen mit einem Eintrag
+  je Sprache) zeigt den Baum dieser Sprache ab dem Ordner, mit `hideOutsideRoot` nur auf Seiten im
+  Ordner. `include: [en]` wirkt genauso.
 - **Die Wörter des Plugins und die alphabetische Sortierung folgen der Seitensprache**
   („Previous“ auf englischen Seiten, „Zurück“ auf deutschen), mit dem `locale` der Site, wenn es
   dieselbe Sprache ist.
 - **Ein Eintrag je Navigation** genügt; eine Instanz je Sprache ist nicht nötig.
 - Die Startseite eines Sprachordners (`de/index.md`) gewinnt gegen eine `index.md` in der Wurzel,
-  die die Standardsprache nur geerbt hat.
-- `language: all` ignoriert Sprachen (das Verhalten vor 0.3). `language: de` zeigt immer den Baum
-  dieser Sprache.
-- Grenzen: Seiten ohne eigene Sprache und ohne Sprachseiten daneben (Tag-Seiten) bekommen die
-  Sprache der Site. Mit der Sprache im Frontmatter gibt es keine Pfadkonvention; die Startseite einer
-  Sprache ist dann eine gewöhnliche Seite, außer sie ist eine `index.md`.
+  auch wenn diese `lang: de` im Frontmatter trägt.
+- `language: all` ignoriert Sprachen (das Verhalten bis 0.2). `language: de` zeigt immer den Baum
+  dieser Sprache; ein Code, den keine Seite trägt, rendert nichts und wird im Build-Log gemeldet.
+- Seiten, die zu mehreren oder keiner Sprache gehören (eine Ordnerseite, die sich Suffix-Seiten
+  teilen, Tag-Seiten), bekommen die Standardsprache, wie quartz-multilanguage für sie entscheidet.
+  Gibt es keine Seiten in der Standardsprache, entscheidet das `locale` der Site.
+- Grenzen: Mit der Sprache im Frontmatter gibt es keine Pfadkonvention; die Startseite einer Sprache
+  ist dann eine gewöhnliche Seite, außer sie ist eine `index.md`, und der Baum der anderen Sprache
+  hat keine Startseite (`showHome` und `showScopeRoot` rendern für ihn nichts).
 
 ## Zusammenspiel mit anderen Plugins
 
@@ -406,7 +414,7 @@ verstecken.
 
 ## Wie gut ist der Code geprüft?
 
-`npm run check` führt Typecheck, Linter, Formatter und 99 Tests aus; die CI macht bei jedem Push
+`npm run check` führt Typecheck, Linter, Formatter und 105 Tests aus; die CI macht bei jedem Push
 dasselbe, baut das Plugin und prüft, dass das committete `dist/` dem Build entspricht. Das ist keine Garantie, aber etwas, das du selbst ausführen kannst, bevor du
 dem Plugin vertraust.
 

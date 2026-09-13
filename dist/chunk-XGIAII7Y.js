@@ -421,10 +421,7 @@ function chainOf(tree, slug2) {
 function parentOf(tree, node) {
   return node.parentSlug !== void 0 ? tree.bySlug.get(node.parentSlug) : void 0;
 }
-function pathOfSlug(slug2) {
-  return slug2 === "index" ? "" : slug2.replace(/\/index$/, "");
-}
-function resolveScope(tree, currentSlug, opts, currentPath = pathOfSlug(currentSlug)) {
+function resolveScope(tree, currentSlug, opts, currentKey = currentSlug) {
   const base = tree.folders.get(opts.rootPath);
   if (!base) {
     warnOnce(
@@ -433,7 +430,7 @@ function resolveScope(tree, currentSlug, opts, currentPath = pathOfSlug(currentS
     );
     return void 0;
   }
-  if (opts.rootPath && opts.hideOutsideRoot && currentPath !== opts.rootPath && !currentPath.startsWith(`${opts.rootPath}/`)) {
+  if (opts.rootPath && opts.hideOutsideRoot && !currentKey.startsWith(`${opts.rootPath}/`)) {
     return void 0;
   }
   const chain = chainOf(tree, currentSlug);
@@ -550,12 +547,14 @@ function languageIndex(allFiles) {
   const hit = cache.get(allFiles);
   if (hit) return hit;
   const languages = [];
+  let defaultLanguage;
   const dirs = /* @__PURE__ */ new Map();
   for (const data of allFiles) {
     const ml = multilanguageOf(data);
     const slug2 = typeof data.slug === "string" ? data.slug : "";
     if (!ml || !slug2) continue;
     if (!languages.includes(ml.lang)) languages.push(ml.lang);
+    if (ml.source === "default") defaultLanguage ??= ml.lang;
     const slugDirs = dirSegments(slug2);
     const baseDirs = dirSegments(ml.baseSlug);
     const offset = slugDirs.length - baseDirs.length;
@@ -571,13 +570,19 @@ function languageIndex(allFiles) {
     }
   }
   const index = { languages, dirs };
+  if (defaultLanguage) index.defaultLanguage = defaultLanguage;
   cache.set(allFiles, index);
   return index;
+}
+function rankOf(source) {
+  if (source === "default") return 1;
+  if (source === "frontmatter") return 2;
+  return 3;
 }
 function placements(data, index) {
   const slug2 = typeof data.slug === "string" ? data.slug : "";
   const ml = multilanguageOf(data);
-  if (ml) return [{ lang: ml.lang, key: ml.baseSlug, rank: ml.source === "default" ? 1 : 2 }];
+  if (ml) return [{ lang: ml.lang, key: ml.baseSlug, rank: rankOf(ml.source) }];
   const name = slug2.split("/").pop() ?? slug2;
   const mapped = index.dirs.get(dirSegments(slug2).join("/"));
   if (!mapped || mapped.size === 0) return [{ key: slug2, rank: 0 }];
@@ -595,8 +600,17 @@ function languageOfPage(data, index, siteLocale) {
   if (index.languages.length === 0) return void 0;
   const langs = placements(data, index).map((p) => p.lang).filter((l) => l !== void 0);
   const candidates = langs.length > 0 ? langs : index.languages;
+  if (index.defaultLanguage && candidates.includes(index.defaultLanguage)) {
+    return index.defaultLanguage;
+  }
   const site = primary(siteLocale);
   return candidates.find((l) => primary(l) === site) ?? candidates[0];
+}
+function languageDirectory(index, dir) {
+  const mapped = index.dirs.get(dir);
+  if (!mapped || mapped.size !== 1) return void 0;
+  const [lang, path2] = [...mapped][0];
+  return path2 === dir ? void 0 : { lang, path: path2 };
 }
 function localeFor(lang, siteLocale) {
   return primary(siteLocale) === primary(lang) && siteLocale ? siteLocale : lang;
@@ -727,7 +741,14 @@ function ensureFolder(root, segments, dirParts) {
   }
   return node;
 }
-var INDEX_TITLE = /^_?index(\.[\w-]+)?$/i;
+var INDEX_STEM = /^_?index(\.[\w-]+)?$/i;
+function isIndexTitle(title, draft) {
+  if (title === "index") return true;
+  const data = draft.data;
+  if (typeof data?.filePath !== "string" || typeof data.relativePath !== "string") return false;
+  const stem = stripExtension(data.relativePath.split("/").pop() ?? "");
+  return title === stem && INDEX_STEM.test(stem);
+}
 function alignedDirs(relativePath, count) {
   if (!relativePath) return void 0;
   const dirs = relativePath.split("/").slice(0, -1);
@@ -794,7 +815,7 @@ function titleOf(draft, opts) {
   const title = readString(fm, "title");
   let fromName = false;
   let out;
-  const usable = title !== void 0 && !INDEX_TITLE.test(title);
+  const usable = title !== void 0 && !isIndexTitle(title, draft);
   if (usable && draft.kind === "page" && draft.rawName !== void 0 && title === draft.rawName) {
     out = draft.nameHint ?? title;
     fromName = true;
@@ -1436,7 +1457,7 @@ function renderNavigation(ctx) {
     opts.mobile === "select" && /* @__PURE__ */ jsx("div", { class: "quartz-nav__mobile-select", children: selectEl(ctx, `${ctx.id}-select`) }),
     /* @__PURE__ */ jsxs("div", { class: "quartz-nav__panel", id: panelId, children: [
       offcanvas && /* @__PURE__ */ jsx("label", { for: toggleId, class: "quartz-nav__close", "aria-hidden": "true", children: /* @__PURE__ */ jsx(LucideIcon, { name: opts.iconNames.close, size: "1.5em" }) }),
-      opts.showScopeRoot && /* @__PURE__ */ jsx("div", { class: "quartz-nav__root", children: titleEl(root, ctx, {
+      opts.showScopeRoot && root.title && /* @__PURE__ */ jsx("div", { class: "quartz-nav__root", children: titleEl(root, ctx, {
         className: "quartz-nav__root-link",
         typeIcon: typeIconsAt(1, ctx) ? "folder-open" : void 0
       }) }),
@@ -1493,14 +1514,32 @@ var Navigation_default = ((userOpts) => {
     const siteLocale = typeof cfg?.locale === "string" ? cfg.locale : void 0;
     const langs = languageIndex(files);
     const page = fileData ?? {};
-    const language = opts.language === "all" ? void 0 : opts.language === "auto" ? languageOfPage(page, langs, siteLocale) : langs.languages.find((l) => l === opts.language) ?? langs.languages.find((l) => l === opts.language.split(/[-_]/)[0]) ?? opts.language;
+    const auto = opts.language === "auto";
+    const all = opts.language === "all";
+    const fixed = auto || all ? void 0 : langs.languages.find((l) => l === opts.language) ?? langs.languages.find((l) => l === opts.language.split(/[-_]/)[0]);
+    if (!auto && !all && !fixed && langs.languages.length > 0) {
+      warnOnce(
+        `language-unknown:${opts.language}`,
+        `\`language: ${opts.language}\` matches no page language (${langs.languages.join(", ")}).`
+      );
+    }
+    const langDir = all ? void 0 : languageDirectory(langs, opts.rootPath);
+    let scopeOpts = opts;
+    let language;
+    if (langDir && (auto || fixed === langDir.lang)) {
+      if (opts.hideOutsideRoot && !slug2.startsWith(`${opts.rootPath}/`)) return null;
+      scopeOpts = { ...opts, rootPath: langDir.path, hideOutsideRoot: false };
+      language = langDir.lang;
+    } else if (!all) {
+      language = auto ? languageOfPage(page, langs, siteLocale) : fixed ?? opts.language;
+    }
     const locale = language ? localeFor(language, siteLocale) : siteLocale;
     const tree = treeFromFiles(files, opts, locale, language);
     const key = language ? placementIn(page, langs, language)?.key : void 0;
-    const scope = resolveScope(tree, slug2, opts, pathOfSlug(key ?? slug2));
+    const scope = resolveScope(tree, slug2, scopeOpts, key ?? slug2);
     if (!scope) return null;
     const ctx = {
-      opts,
+      opts: scopeOpts,
       id,
       slug: slug2,
       tree,
@@ -1524,5 +1563,5 @@ var Navigation_default = ((userOpts) => {
 });
 
 export { LucideIcon, Navigation_default, buildTree, chainOf, defaultOptions, flatten, hasLucideIcon, lucideIconNames, lucideName, resolveOptions, resolveScope, treeFromFiles };
-//# sourceMappingURL=chunk-A7NZ36DW.js.map
-//# sourceMappingURL=chunk-A7NZ36DW.js.map
+//# sourceMappingURL=chunk-XGIAII7Y.js.map
+//# sourceMappingURL=chunk-XGIAII7Y.js.map

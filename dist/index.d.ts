@@ -122,10 +122,10 @@ interface Scope {
 /** Current node first, site root last. Empty when the slug is not in the tree. */
 declare function chainOf(tree: NavTree, slug: string): NavNode[];
 /**
- * `currentPath` is the language-neutral path of the current page (see `language.ts`); it
- * defaults to the path of `currentSlug`.
+ * `currentKey` is the language-neutral slug of the current page (see `language.ts`); it
+ * defaults to `currentSlug`.
  */
-declare function resolveScope(tree: NavTree, currentSlug: string, opts: ResolvedOptions, currentPath?: string): Scope | undefined;
+declare function resolveScope(tree: NavTree, currentSlug: string, opts: ResolvedOptions, currentKey?: string): Scope | undefined;
 /** Pre-order list of the nodes rendered below `root`, honouring `depth`. */
 declare function flatten(root: NavNode, opts: ResolvedOptions): NavNode[];
 
