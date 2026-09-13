@@ -351,14 +351,11 @@ function selectEl(ctx: RenderContext, id: string) {
   };
   // Level-1 folders become groups so the list stays readable without indentation tricks.
   const items: unknown[] = [];
-  const grouped = new Set<string>();
   for (const child of root.children) {
     if (child.kind === "folder" && child.children.length > 0 && levelAllowed(2, ctx)) {
       const inner = nodes.filter(
         (n) => n.slug !== child.slug && n.slug.startsWith(child.slug.replace(/index$/, "")),
       );
-      inner.forEach((n) => grouped.add(n.slug));
-      grouped.add(child.slug);
       const indexTarget = linkTarget(child, ctx.opts);
       items.push(
         <optgroup label={child.title}>
@@ -370,7 +367,7 @@ function selectEl(ctx: RenderContext, id: string) {
           {inner.map((n) => option(n, n.depth - child.depth))}
         </optgroup>,
       );
-    } else if (!grouped.has(child.slug)) {
+    } else {
       items.push(option(child, 1));
     }
   }
@@ -444,16 +441,18 @@ export function renderNavigation(ctx: RenderContext) {
   const toggleId = `${ctx.id}-toggle`;
   const panelId = `${ctx.id}-panel`;
 
+  // The home entry needs an index page under `rootPath`; tabs have no place for it.
+  const home = opts.variant === "tabs" ? null : homeEntry(ctx);
+  if (root.children.length === 0 && !home) return null;
   const body =
     opts.variant === "tabs" ? (
       renderTabs(ctx)
     ) : (
       <ul class="quartz-nav__list" data-level="1">
-        {homeEntry(ctx)}
+        {home}
         {root.children.map((n) => renderItem(n, 1, ctx))}
       </ul>
     );
-  if (root.children.length === 0 && !opts.showHome) return null;
 
   return (
     <nav class={rootClass(ctx)} aria-label={ariaLabel} {...rootData(ctx)}>

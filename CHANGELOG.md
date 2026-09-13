@@ -17,6 +17,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The desktop rule that hides the toggle of folders collapsing only on mobile is now the exact
   negation of the mobile media query. At exactly the mobile breakpoint both `min-width` and
   `max-width` matched, hiding the toggle while the script collapsed the folders.
+- Alphabetical sorting uses the site's `locale` from the Quartz config instead of the build
+  machine's locale, so accented titles sort the same on every machine.
+- `scope: parent` on the index page of `rootPath` shows the children of `rootPath` instead of
+  rendering nothing.
+- Folders that only collapse on mobile follow the viewport when it crosses the mobile
+  breakpoint after the page has loaded (rotation, window resize).
+- `showHome` without an index page under `rootPath` no longer renders an empty `<nav>`.
+
+### Removed
+
+- The unused "Close menu" translation string.
 
 ## [0.2.0] - 2026-09-13
 

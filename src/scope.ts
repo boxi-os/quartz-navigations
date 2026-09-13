@@ -62,9 +62,12 @@ export function resolveScope(
     case "section":
       root = chain.find((n) => n.kind === "folder" && n.depth === base.depth + 1 && inBase(n));
       break;
-    case "parent":
-      root = current ? (parentOf(tree, current) ?? current) : undefined;
+    case "parent": {
+      // The base folder's parent lies outside `rootPath`; its index page shows the base itself.
+      const parent = current ? parentOf(tree, current) : undefined;
+      root = parent && inBase(parent) ? parent : current;
       break;
+    }
     case "current":
       root = current ? (current.kind === "folder" ? current : parentOf(tree, current)) : undefined;
       break;

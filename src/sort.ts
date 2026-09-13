@@ -13,9 +13,13 @@ function compareOptional(x: number | undefined, y: number | undefined, dir: numb
   return (x - y) * dir;
 }
 
-export function compareNodes(opts: ResolvedOptions): Comparator {
+/**
+ * `locale` is the site's `cfg.locale`; with none, the collator falls back to the build
+ * machine's locale, and titles with accents or umlauts may sort differently per machine.
+ */
+export function compareNodes(opts: ResolvedOptions, locale?: string): Comparator {
   const dir = opts.sortDirection === "desc" ? -1 : 1;
-  const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
+  const collator = new Intl.Collator(locale, { numeric: true, sensitivity: "base" });
   const byTitle: Comparator = (a, b) => collator.compare(a.title, b.title) * dir;
   const numeric =
     (get: (n: NavNode) => number | undefined): Comparator =>

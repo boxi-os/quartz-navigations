@@ -58,9 +58,10 @@ See `ARCHITECTURE.md` for the lifecycle and file map, `README.md` for user-facin
 - Component `css` and `afterDOMLoaded` must stay one string for all instances (Quartz dedupes by
   content). Instance-specific behaviour goes into classes and `data-*` attributes.
 - Never hard-code breakpoints in SCSS; use the placeholders replaced by `applyBreakpoints`.
-- `preact` and `vfile` stay peerDependencies and external; everything else must be bundled, so
-  runtime packages (`github-slugger` for `@quartz-community/utils/path`, `lucide-static`) go into
-  `devDependencies`. Never widen `noExternal` in `tsup.config.ts`.
+- `preact` and `vfile` stay peerDependencies and external; everything else must be bundled:
+  `@quartz-community/*` live in `dependencies` and are forced into the bundle by `noExternal`,
+  other runtime packages (`lucide-static`) go into `devDependencies`. Never widen `noExternal`
+  in `tsup.config.ts` beyond `@quartz-community/`.
 - Animations must not play for folders rendered open; keep them bound to `data-animate`, which
   only the client script sets on interaction.
 - The inline script must stay a plain script (no `export`, no `declare global`), and every

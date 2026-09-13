@@ -49,10 +49,10 @@ component.
 `tsup` bundles three entry points (`index`, `types`, `components/index`) to `dist/` with code
 splitting, so the shared code (including the ~360 KB Lucide table) is emitted once as a chunk.
 Left external are only the singletons that must resolve to the host's instance: `preact`, `vfile`
-and `@jackyzha0/quartz`. Everything else is inlined — `@quartz-community/utils`,
-`github-slugger`, `lucide-static` — because Quartz never installs a pre-built plugin's
-`dependencies`, only its `peerDependencies`; runtime packages therefore live in
-`devDependencies`. `.scss` imports compile to CSS strings (the breakpoint placeholders survive
+and `@jackyzha0/quartz`. Everything else is inlined — `@quartz-community/utils` (with its
+`github-slugger`), `lucide-static` — because Quartz never installs a pre-built plugin's
+`dependencies`, only its `peerDependencies`; `@quartz-community/*` are listed as `dependencies`
+and forced into the bundle by `noExternal`, other runtime packages live in `devDependencies`. `.scss` imports compile to CSS strings (the breakpoint placeholders survive
 compilation and are replaced at construction time), `.inline.ts` imports bundle to browser JS
 strings, `virtual:lucide-nodes` resolves to `node_modules/lucide-static/icon-nodes.json` as a
 compact JSON string. `vitest.config.ts` provides the same loaders for tests. `dist/` is committed.

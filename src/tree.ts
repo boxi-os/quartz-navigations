@@ -238,10 +238,14 @@ function finalize(
   return node;
 }
 
-/** Builds the navigation tree from Quartz's `allFiles`. Pure apart from `warnOnce`. */
-export function buildTree(allFiles: FileData[], opts: ResolvedOptions): NavTree {
+/**
+ * Builds the navigation tree from Quartz's `allFiles`. Pure apart from `warnOnce`. `locale`
+ * (the site's `cfg.locale`) drives the alphabetical comparator.
+ */
+export function buildTree(allFiles: FileData[], opts: ResolvedOptions, locale?: string): NavTree {
   const bySlug = new Map<string, NavNode>();
-  const root = finalize(collect(allFiles, opts), undefined, "", opts, bySlug, compareNodes(opts));
+  const comparator = compareNodes(opts, locale);
+  const root = finalize(collect(allFiles, opts), undefined, "", opts, bySlug, comparator);
   return { root: root!, bySlug };
 }
 
@@ -249,18 +253,22 @@ const cache = new WeakMap<object, Map<string, NavTree>>();
 
 /**
  * Cached per `allFiles` identity: Quartz passes the same array to every component of one
- * build, so instances with equal tree options share one tree.
+ * build, so instances with equal tree options (and locale) share one tree.
  */
-export function treeFromFiles(allFiles: FileData[], opts: ResolvedOptions): NavTree {
+export function treeFromFiles(
+  allFiles: FileData[],
+  opts: ResolvedOptions,
+  locale?: string,
+): NavTree {
   let perOptions = cache.get(allFiles);
   if (!perOptions) {
     perOptions = new Map();
     cache.set(allFiles, perOptions);
   }
-  const key = treeOptionsKey(opts);
+  const key = `${locale ?? ""}\n${treeOptionsKey(opts)}`;
   const hit = perOptions.get(key);
   if (hit) return hit;
-  const tree = buildTree(allFiles, opts);
+  const tree = buildTree(allFiles, opts, locale);
   perOptions.set(key, tree);
   return tree;
 }

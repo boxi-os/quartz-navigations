@@ -35,9 +35,9 @@ function writeState(id: string, state: NavState): void {
   }
 }
 
-function isMobile(nav: HTMLElement): boolean {
+function mobileQuery(nav: HTMLElement): MediaQueryList | undefined {
   const bp = nav.dataset.bpMobile;
-  return bp ? window.matchMedia(`(max-width: ${bp})`).matches : false;
+  return bp ? window.matchMedia(`(max-width: ${bp})`) : undefined;
 }
 
 /**
@@ -63,16 +63,23 @@ function setupFolders(nav: HTMLElement): void {
   const id = nav.dataset.quartzNav ?? "";
   const persist = nav.dataset.persist === "true";
   const expandActive = nav.dataset.expandActive === "true";
-  const mobile = isMobile(nav);
+  const query = mobileQuery(nav);
   const state = persist ? readState(id) : {};
+  // Folders that only collapse on mobile are rendered open so the desktop layout works
+  // without JS; they follow the viewport, also when it crosses the breakpoint later.
+  const mobileOnly: (() => void)[] = [];
 
   nav.querySelectorAll<HTMLDetailsElement>("details[data-folder]").forEach((details) => {
     const slug = details.dataset.folder ?? "";
     const onTrail = details.dataset.trail === "true";
     const stored = persist && slug in state ? state[slug] === true : undefined;
     if (details.dataset.mobileCollapsible !== undefined) {
-      // Rendered open so the desktop layout works without JS; collapse on small screens.
-      details.open = !mobile || onTrail || stored === true;
+      const applyViewport = () => {
+        const remembered = persist && slug in state ? state[slug] === true : false;
+        details.open = !(query?.matches ?? false) || onTrail || remembered;
+      };
+      applyViewport();
+      mobileOnly.push(applyViewport);
     } else if (stored !== undefined && !(expandActive && onTrail)) {
       details.open = stored;
     }
@@ -84,6 +91,12 @@ function setupFolders(nav: HTMLElement): void {
     details.addEventListener("toggle", onToggle);
     window.addCleanup(() => details.removeEventListener("toggle", onToggle));
   });
+
+  if (query && mobileOnly.length > 0 && typeof query.addEventListener === "function") {
+    const onChange = () => mobileOnly.forEach((apply) => apply());
+    query.addEventListener("change", onChange);
+    window.addCleanup(() => query.removeEventListener("change", onChange));
+  }
 }
 
 /**

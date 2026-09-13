@@ -77,8 +77,9 @@ Run tests matching a name: `npx vitest run -t "accordion"`
   `vfile` (singleton externals). `.scss` → CSS string, `.inline.ts` → bundled browser JS string,
   `virtual:lucide-nodes` → compact JSON string. `vitest.config.ts` mirrors all three loaders.
 - `dist/` is committed; Quartz treats the plugin as pre-built and only symlinks the peers, so every
-  runtime dependency (`@quartz-community/*`, `github-slugger`, `lucide-static`) must stay in
-  `devDependencies` to be bundled. CI verifies this (`verify-dist-bundling`).
+  runtime dependency must end up in the bundle: `@quartz-community/*` sit in `dependencies` (like
+  the sibling projects) and are pulled back in via `noExternal`; `lucide-static` stays in
+  `devDependencies`. CI verifies this (`verify-dist-bundling`).
 
 ## Claude-Skills in diesem Projekt
 

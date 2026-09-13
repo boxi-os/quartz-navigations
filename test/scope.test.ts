@@ -60,6 +60,13 @@ describe("resolveScope", () => {
     expect(scope("docs/01-intro", { scope: "current" }).scope?.root.slug).toBe("docs/index");
     expect(scope("index", { scope: "parent" }).scope?.root.slug).toBe("index");
     expect(scope("tags/foo", { scope: "parent" }).scope).toBeUndefined();
+    // The index page of `rootPath` has its parent outside the root; it shows the root itself.
+    expect(scope("docs/index", { scope: "parent", rootPath: "docs" }).scope?.root.slug).toBe(
+      "docs/index",
+    );
+    expect(scope("docs/01-intro", { scope: "parent", rootPath: "docs" }).scope?.root.slug).toBe(
+      "docs/index",
+    );
   });
 
   it("rootPath restricts the tree and hides the navigation elsewhere", () => {

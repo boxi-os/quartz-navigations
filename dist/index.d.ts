@@ -5,13 +5,16 @@ import { h } from 'preact';
 import '@quartz-community/types';
 
 type FileData = Record<string, unknown>;
-/** Builds the navigation tree from Quartz's `allFiles`. Pure apart from `warnOnce`. */
-declare function buildTree(allFiles: FileData[], opts: ResolvedOptions): NavTree;
+/**
+ * Builds the navigation tree from Quartz's `allFiles`. Pure apart from `warnOnce`. `locale`
+ * (the site's `cfg.locale`) drives the alphabetical comparator.
+ */
+declare function buildTree(allFiles: FileData[], opts: ResolvedOptions, locale?: string): NavTree;
 /**
  * Cached per `allFiles` identity: Quartz passes the same array to every component of one
- * build, so instances with equal tree options share one tree.
+ * build, so instances with equal tree options (and locale) share one tree.
  */
-declare function treeFromFiles(allFiles: FileData[], opts: ResolvedOptions): NavTree;
+declare function treeFromFiles(allFiles: FileData[], opts: ResolvedOptions, locale?: string): NavTree;
 
 /**
  * Defaults live here, not in the manifest: Quartz passes the raw YAML `options` to the

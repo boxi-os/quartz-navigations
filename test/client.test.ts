@@ -27,6 +27,14 @@ function mount(html: string) {
   document.body.innerHTML = `<main><button id="outside">outside</button></main>${html}`;
 }
 
+/** Listeners on the mobile media query; `resize()` flips `mobile` and fires them. */
+const mediaListeners = new Set<() => void>();
+
+function resize(toMobile: boolean) {
+  mobile = toMobile;
+  for (const fn of mediaListeners) fn();
+}
+
 async function nav() {
   for (const fn of cleanups.splice(0)) fn();
   document.dispatchEvent(new CustomEvent("nav", { detail: { url: "docs/index" } }) as never);
@@ -45,8 +53,14 @@ beforeAll(() => {
     Object.defineProperty(target, "localStorage", { value: memoryStorage, configurable: true });
   }
   window.matchMedia = ((query: string) => ({
-    matches: query.includes("max-width") ? mobile : query.includes("hover") ? true : false,
+    get matches() {
+      return query.includes("max-width") ? mobile : query.includes("hover") ? true : false;
+    },
     media: query,
+    addEventListener: (type: string, fn: () => void) => {
+      if (type === "change" && query.includes("max-width")) mediaListeners.add(fn);
+    },
+    removeEventListener: (_type: string, fn: () => void) => void mediaListeners.delete(fn),
   })) as never;
   window.addCleanup = (fn) => cleanups.push(fn as () => void);
   const source = fs.readFileSync(
@@ -116,6 +130,26 @@ describe("client script", () => {
     await nav();
     all = document.querySelectorAll<HTMLDetailsElement>("details");
     expect([all[0]!.open, all[1]!.open]).toEqual([false, true]);
+  });
+
+  it("follows the viewport when it crosses the mobile breakpoint", async () => {
+    mount(
+      `<nav data-quartz-nav="top" data-variant="bar" data-mobile="accordion" data-bp-mobile="800px">
+        <div class="quartz-nav__panel"><ul class="quartz-nav__list">
+          ${details("a/index", true, 'data-mobile-collapsible="true"')}
+          ${details("b/index", true, 'data-mobile-collapsible="true" data-trail="true"')}
+        </ul></div></nav>`,
+    );
+    await nav();
+    const all = document.querySelectorAll<HTMLDetailsElement>("details");
+    expect([all[0]!.open, all[1]!.open]).toEqual([true, true]);
+    resize(true);
+    expect([all[0]!.open, all[1]!.open]).toEqual([false, true]);
+    resize(false);
+    expect([all[0]!.open, all[1]!.open]).toEqual([true, true]);
+    // The listener is removed with the other cleanups.
+    await nav();
+    expect(mediaListeners.size).toBe(1);
   });
 
   it("closes dropdown panels on Escape, outside clicks and prenav", async () => {

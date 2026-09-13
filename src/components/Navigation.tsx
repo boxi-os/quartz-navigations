@@ -28,7 +28,8 @@ export default ((userOpts?: NavigationOptions) => {
     if (!slug) return null;
 
     const files = (Array.isArray(allFiles) ? allFiles : []) as FileData[];
-    const tree = treeFromFiles(files, opts);
+    const locale = typeof cfg?.locale === "string" ? cfg.locale : undefined;
+    const tree = treeFromFiles(files, opts, locale);
     const scope = resolveScope(tree, slug, opts);
     if (!scope) return null;
 
@@ -38,7 +39,7 @@ export default ((userOpts?: NavigationOptions) => {
       slug,
       tree,
       scope,
-      t: i18n(cfg?.locale),
+      t: i18n(locale),
       displayClass,
       mobileBreakpoint: breakpoints.mobile,
     };

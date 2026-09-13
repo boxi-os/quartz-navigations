@@ -2,7 +2,6 @@ export default {
   nav: {
     label: "Main navigation",
     toggleMenu: "Toggle menu",
-    closeMenu: "Close menu",
     home: "Home",
     overview: "Overview",
     previous: "Previous",

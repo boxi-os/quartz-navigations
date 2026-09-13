@@ -536,4 +536,17 @@ describe("Navigation component", () => {
     expect(render({}, "index", { fileData: {} })).toBeNull();
     expect(render({ include: ["nothing/**"] }, "index")).toBeNull();
   });
+
+  it("renders no empty nav when showHome has no index page to link to", () => {
+    // `p` has no index page and its only page is hidden; `hideEmptyFolders: false` keeps it.
+    const files = [page("index", "index.md"), page("p/hidden", "p/hidden.md", { navHide: true })];
+    const opts: NavigationOptions = { showHome: true, rootPath: "p", hideEmptyFolders: false };
+    const props = { allFiles: files, fileData: files[1] };
+    expect(render(opts, "p/hidden", props)).toBeNull();
+    expect(render({ ...opts, variant: "tabs" }, "p/hidden", props)).toBeNull();
+    // With an index page the home entry alone justifies the nav.
+    const withIndex = [...files, page("p/index", "p/index.md")];
+    const nav = render(opts, "p/hidden", { allFiles: withIndex, fileData: withIndex[1] });
+    expect(nav?.props.class).toContain("quartz-nav");
+  });
 });

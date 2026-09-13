@@ -206,10 +206,31 @@ describe("buildTree", () => {
       expect(node(t, "about").kind).toBe("page");
     }
   });
+
+  it("sorts alphabetically with the site's locale instead of the build machine's", () => {
+    // Swedish sorts ä after z; German and the root locale sort it next to a.
+    const files = [
+      page("index", "index.md", { title: "Home" }),
+      page("aerger", "Ärger.md", { title: "Ärger" }),
+      page("zebra", "Zebra.md", { title: "Zebra" }),
+      page("apfel", "Apfel.md", { title: "Apfel" }),
+    ];
+    const opts = resolveOptions({ sort: "alphabetical" });
+    expect(titles(buildTree(files, opts, "de-DE").root.children)).toEqual([
+      "Apfel",
+      "Ärger",
+      "Zebra",
+    ]);
+    expect(titles(buildTree(files, opts, "sv-SE").root.children)).toEqual([
+      "Apfel",
+      "Zebra",
+      "Ärger",
+    ]);
+  });
 });
 
 describe("treeFromFiles", () => {
-  it("caches per allFiles identity and per tree options", () => {
+  it("caches per allFiles identity, tree options and locale", () => {
     const files = site();
     const a = treeFromFiles(files, resolveOptions({ variant: "accordion" }));
     const b = treeFromFiles(files, resolveOptions({ variant: "dropdown", depth: 2 }));
@@ -218,5 +239,8 @@ describe("treeFromFiles", () => {
     expect(c).not.toBe(a);
     const d = treeFromFiles(site(), resolveOptions());
     expect(d).not.toBe(a);
+    const e = treeFromFiles(files, resolveOptions(), "de-DE");
+    expect(e).not.toBe(a);
+    expect(treeFromFiles(files, resolveOptions(), "de-DE")).toBe(e);
   });
 });
