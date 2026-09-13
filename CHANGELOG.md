@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- A page and a folder with the same name (`about.md` next to `about/`) no longer overwrite
+  each other in the tree; which one survived depended on the file order.
+- The pager never links to the current page any more. A folder without its own page (or with
+  `folderLink: first-child`) links to its first page, and "Previous" on that page pointed back
+  at itself.
+- The desktop rule that hides the toggle of folders collapsing only on mobile is now the exact
+  negation of the mobile media query. At exactly the mobile breakpoint both `min-width` and
+  `max-width` matched, hiding the toggle while the script collapsed the folders.
+
 ## [0.2.0] - 2026-09-13
 
 ### Changed

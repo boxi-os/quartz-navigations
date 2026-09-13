@@ -1,10 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { resolveOptions } from "../src/options";
 import { chainOf, flatten, pagerNeighbours, resolveScope } from "../src/scope";
+import { linkTarget } from "../src/links";
 import { buildTree } from "../src/tree";
 import type { NavigationOptions } from "../src/types";
 import { resetWarnings } from "../src/util/warn";
-import { site } from "./fixture";
+import { page, site } from "./fixture";
 
 let warn: ReturnType<typeof vi.spyOn>;
 beforeEach(() => {
@@ -130,5 +131,35 @@ describe("flatten and pagerNeighbours", () => {
     const n = pagerNeighbours(siblings.tree, siblings.scope!, siblings.opts);
     expect(n.prev?.slug).toBe("docs/guides/index");
     expect(n.next?.slug).toBe("docs/02-setup");
+  });
+
+  it("never links to the current page when a folder row targets its first page", () => {
+    // No `docs/index`: the folder row links to `docs/one`, like `folderLink: first-child`.
+    const files = [
+      page("index", "index.md", { title: "Home" }),
+      page("docs/one", "docs/one.md", { title: "One" }),
+      page("docs/two", "docs/two.md", { title: "Two" }),
+      page("zeta", "zeta.md", { title: "Zeta" }),
+    ];
+    const at = (slug: string, userOpts: NavigationOptions = {}) => {
+      const opts = resolveOptions(userOpts);
+      const tree = buildTree(files, opts);
+      const s = resolveScope(tree, slug, opts)!;
+      const { prev, next } = pagerNeighbours(tree, s, opts);
+      return { prev: prev && linkTarget(prev, opts), next: next && linkTarget(next, opts) };
+    };
+    expect(at("docs/one")).toEqual({ prev: "index", next: "docs/two" });
+    expect(at("docs/two")).toEqual({ prev: "docs/one", next: "zeta" });
+    expect(at("index")).toEqual({ prev: undefined, next: "docs/one" });
+
+    // With `first-child` every folder row targets its first page; the folder's own index
+    // page still gets a pager, and the first page never points back at itself.
+    const withIndex = scope("docs/index", { folderLink: "first-child" });
+    const onIndex = pagerNeighbours(withIndex.tree, withIndex.scope!, withIndex.opts);
+    expect(onIndex.next?.slug).toBe("docs/guides/beta");
+    const first = scope("docs/guides/beta", { folderLink: "first-child" });
+    const onFirst = pagerNeighbours(first.tree, first.scope!, first.opts);
+    expect(onFirst.prev?.slug).toBe("docs/index");
+    expect(linkTarget(onFirst.prev!, first.opts)).not.toBe("docs/guides/beta");
   });
 });

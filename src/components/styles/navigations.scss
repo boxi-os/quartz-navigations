@@ -758,8 +758,10 @@ html.quartz-nav-lock {
   }
 
   // Folders that only collapse on mobile stay open on larger screens; the toggle is
-  // removed from view, pointer and tab order there.
-  @media all and (min-width: __NAV_BP_MOBILE__) {
+  // removed from view, pointer and tab order there. Written as the negation of the mobile
+  // query: `min-width` and `max-width` with the same value both match at exactly that width,
+  // which would hide the toggle while the script collapses the folders.
+  @media not all and (max-width: __NAV_BP_MOBILE__) {
     details[data-mobile-collapsible] > .quartz-nav__summary--toggle {
       visibility: hidden;
     }

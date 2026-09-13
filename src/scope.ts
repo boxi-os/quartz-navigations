@@ -105,7 +105,16 @@ export function pagerNeighbours(
     list = flatten(scope.root, opts);
     if (scope.root.hasIndex && linkTarget(scope.root, opts)) list = [scope.root, ...list];
   }
-  const linked = list.filter((n) => linkTarget(n, opts) !== undefined);
+  // A folder without its own page links to its first page, so both rows share one target and
+  // "Previous" on that page would point at the page itself. Rows whose target is another
+  // row's own page are skipped; the current row always stays.
+  const entries = list
+    .map((node) => ({ node, target: linkTarget(node, opts) }))
+    .filter((e): e is { node: NavNode; target: string } => e.target !== undefined);
+  const own = (e: { node: NavNode; target: string }) =>
+    e.node.slug === e.target || e.node.slug === current.slug;
+  const ownTargets = new Set(entries.filter(own).map((e) => e.target));
+  const linked = entries.filter((e) => own(e) || !ownTargets.has(e.target)).map((e) => e.node);
   const idx = linked.findIndex((n) => n.slug === current.slug);
   if (idx < 0) return {};
   return { prev: linked[idx - 1], next: linked[idx + 1] };

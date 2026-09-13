@@ -21,6 +21,7 @@ interface Draft {
   segment: string;
   depth: number;
   slug: string;
+  /** Keyed by `childKey`, so a page and a folder with the same name (`about.md` next to `about/`) coexist. */
   children: Map<string, Draft>;
   /** Real directory or file name from `relativePath`, e.g. `01 Getting Started`. */
   nameHint?: string;
@@ -43,6 +44,10 @@ function newDraft(kind: Draft["kind"], segments: string[]): Draft {
   };
 }
 
+function childKey(kind: Draft["kind"], segment: string): string {
+  return `${kind}:${segment}`;
+}
+
 function isDraft(fm: Frontmatter | undefined): boolean {
   const v = fm?.draft;
   return v === true || (typeof v === "string" && v.trim().toLowerCase() === "true");
@@ -57,10 +62,10 @@ function ensureFolder(root: Draft, segments: string[], dirParts: string[] | unde
   let node = root;
   for (let i = 0; i < segments.length; i++) {
     const seg = segments[i]!;
-    let child = node.children.get(seg);
-    if (!child || child.kind !== "folder") {
+    let child = node.children.get(childKey("folder", seg));
+    if (!child) {
       child = newDraft("folder", segments.slice(0, i + 1));
-      node.children.set(seg, child);
+      node.children.set(childKey("folder", seg), child);
     }
     if (dirParts && child.nameHint === undefined) {
       const hint = dirParts[i];
@@ -108,7 +113,7 @@ function collect(allFiles: FileData[], opts: ResolvedOptions): Draft {
     page.frontmatter = fm;
     page.data = data;
     if (fileName) page.nameHint = stripExtension(fileName);
-    folder.children.set(page.segment, page);
+    folder.children.set(childKey("page", page.segment), page);
   }
   return root;
 }

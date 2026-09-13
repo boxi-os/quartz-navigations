@@ -72,6 +72,19 @@ describe("resolveBreakpoints", () => {
 });
 
 describe("applyBreakpoints", () => {
+  it("never lets the stylesheet's desktop and mobile queries match the same width", () => {
+    // `min-width: X` and `max-width: X` both match at exactly X, so the desktop block must be
+    // written as the negation of the mobile query.
+    const scss = fs.readFileSync(
+      path.join(__dirname, "../src/components/styles/navigations.scss"),
+      "utf8",
+    );
+    const css = applyBreakpoints(scss, { mobile: "700px", desktop: "1100px" });
+    expect(css).toContain("(max-width: 700px)");
+    expect(css).toContain("not all and (max-width: 700px)");
+    expect(css).not.toMatch(/min-width:\s*700px/);
+  });
+
   it("replaces every placeholder", () => {
     const css =
       "@media (max-width: __NAV_BP_MOBILE__){a{}} @media (min-width: __NAV_BP_MOBILE__){b{}} @media (min-width: __NAV_BP_DESKTOP__){c{}}";

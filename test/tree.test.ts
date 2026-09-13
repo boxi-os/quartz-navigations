@@ -189,6 +189,23 @@ describe("buildTree", () => {
     expect(node(t, "notes/index").isVirtual).toBe(false);
     expect(node(t, "misc/index").title).toBe("misc");
   });
+
+  it("keeps a page and a folder with the same name, whatever the file order", () => {
+    const files = [
+      page("index", "index.md", { title: "Home" }),
+      page("about", "about.md", { title: "About" }),
+      page("about/team", "about/team.md", { title: "Team" }),
+    ];
+    for (const order of [files, [files[0]!, files[2]!, files[1]!]]) {
+      const t = tree({}, order);
+      expect(t.root.children.map((n) => `${n.kind}:${n.slug}`)).toEqual([
+        "folder:about/index",
+        "page:about",
+      ]);
+      expect(node(t, "about/index").children.map((n) => n.slug)).toEqual(["about/team"]);
+      expect(node(t, "about").kind).toBe("page");
+    }
+  });
 });
 
 describe("treeFromFiles", () => {
