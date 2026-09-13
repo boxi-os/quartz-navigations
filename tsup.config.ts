@@ -33,13 +33,16 @@ const inlineScriptPlugin: Plugin = {
 
     // Lucide's icon table (2000+ icons) is inlined as one compact JSON string instead of a
     // pretty-printed object literal, which keeps dist/ small and defers parsing to first use.
+    // The module path stays relative on purpose: esbuild writes it into the bundle (module
+    // comment and sourcemap), and an absolute path would make the chunk hash differ per machine.
     parentBuild.onResolve({ filter: /^virtual:lucide-nodes$/ }, () => ({
-      path: path.resolve(absWorkingDir, "node_modules/lucide-static/icon-nodes.json"),
+      path: "lucide-static/icon-nodes.json",
       namespace: "lucide-nodes",
     }));
     parentBuild.onLoad({ filter: /.*/, namespace: "lucide-nodes" }, async (args) => {
       const fs = await import("fs");
-      const text = await fs.promises.readFile(args.path, "utf8");
+      const file = path.resolve(absWorkingDir, "node_modules", args.path);
+      const text = await fs.promises.readFile(file, "utf8");
       return { contents: JSON.stringify(JSON.parse(text)), loader: "text" };
     });
 

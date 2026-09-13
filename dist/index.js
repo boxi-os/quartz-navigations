@@ -1,5 +1,5 @@
 import { createRequire } from 'module';
-export { LucideIcon, Navigation_default as Navigation, buildTree, chainOf, defaultOptions, flatten, hasLucideIcon, lucideIconNames, lucideName, resolveOptions, resolveScope, treeFromFiles } from './chunk-GV57UEIJ.js';
+export { LucideIcon, Navigation_default as Navigation, buildTree, chainOf, defaultOptions, flatten, hasLucideIcon, lucideIconNames, lucideName, resolveOptions, resolveScope, treeFromFiles } from './chunk-2JKXHE3O.js';
 
 createRequire(import.meta.url);
 //# sourceMappingURL=index.js.map
