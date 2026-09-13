@@ -1,0 +1,6 @@
+// One stylesheet for every instance. Tiers are switched by classes on the root element:
+// `quartz-nav--basic` (layout, present for basic and full) and `quartz-nav--full` (colors).
+// `__NAV_BP_MOBILE__` / `__NAV_BP_DESKTOP__` are replaced at construction time with the
+// breakpoints of the site (see src/breakpoints.ts).
+@use "basic";
+@use "full";

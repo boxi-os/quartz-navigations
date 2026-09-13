@@ -1,0 +1,166 @@
+{
+  "name": "quartz-navigations",
+  "version": "0.1.0",
+  "description": "Quartz v5 component plugin that renders navigations from the content folder structure: multiple instances, selectable levels, ten presentation variants, manual sorting and active-state marking.",
+  "type": "module",
+  "license": "MIT",
+  "author": "boxi-os",
+  "homepage": "https://github.com/boxi-os/quartz-navigations",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/boxi-os/quartz-navigations"
+  },
+  "keywords": [
+    "quartz",
+    "quartz-plugin",
+    "quartz-component",
+    "navigation",
+    "menu",
+    "sidebar",
+    "accordion",
+    "dropdown"
+  ],
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./types": {
+      "types": "./dist/types.d.ts",
+      "import": "./dist/types.js"
+    },
+    "./components": {
+      "types": "./dist/components/index.d.ts",
+      "import": "./dist/components/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "lint": "eslint . --max-warnings=0",
+    "format": "prettier . --check",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "check": "npm run typecheck && npm run lint && npm run format && npm run test",
+    "prepublishOnly": "npm run build"
+  },
+  "peerDependencies": {
+    "preact": "^10.0.0",
+    "vfile": "^6.0.3"
+  },
+  "dependencies": {
+    "@quartz-community/types": "^0.2.1",
+    "@quartz-community/utils": "^0.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.0",
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "github-slugger": "^2.0.0",
+    "jsdom": "^25.0.1",
+    "preact": "^10.28.2",
+    "prettier": "^3.6.2",
+    "sass": "^1.97.3",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.3",
+    "vfile": "^6.0.3",
+    "vitest": "^2.1.9"
+  },
+  "quartz": {
+    "name": "quartz-navigations",
+    "displayName": "Navigations",
+    "description": "Navigations from the content folder structure: multiple instances, selectable levels, ten presentation variants, manual sorting and active-state marking.",
+    "category": [
+      "component"
+    ],
+    "version": "0.1.0",
+    "quartzVersion": ">=5.0.0",
+    "dependencies": [],
+    "defaultEnabled": true,
+    "defaultOptions": {
+      "variant": "vertical",
+      "mobile": "same",
+      "style": "full",
+      "className": "",
+      "id": "",
+      "title": "",
+      "ariaLabel": "",
+      "chevrons": true,
+      "icons": false,
+      "rootPath": "",
+      "scope": "root",
+      "depth": 0,
+      "hideOutsideRoot": true,
+      "showScopeRoot": false,
+      "showHome": false,
+      "indexEntry": "none",
+      "sort": "manual",
+      "sortDirection": "asc",
+      "foldersFirst": "first",
+      "dateField": "created",
+      "order": {},
+      "stripNumericPrefix": false,
+      "frontmatterKeys": {
+        "order": "navOrder",
+        "title": "navTitle",
+        "hide": "navHide",
+        "icon": "navIcon"
+      },
+      "hideTags": true,
+      "hideUnlisted": true,
+      "hideDrafts": true,
+      "hideEmptyFolders": true,
+      "keepIndexOnlyFolders": true,
+      "include": [],
+      "exclude": [],
+      "folderLink": "index",
+      "folderClick": "link",
+      "folderDefaultState": "collapsed",
+      "expandActive": true,
+      "exclusive": false,
+      "persistState": false,
+      "dropdownTrigger": "click",
+      "breakpoints": {},
+      "tabs": {
+        "secondary": true
+      },
+      "columns": {
+        "max": 4
+      },
+      "pager": {
+        "labels": true,
+        "order": "tree"
+      }
+    },
+    "components": {
+      "Navigation": {
+        "displayName": "Navigation",
+        "defaultPosition": "left",
+        "defaultPriority": 10
+      }
+    }
+  },
+  "engines": {
+    "node": ">=22",
+    "npm": ">=10.9.2"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "allowScripts": {
+    "esbuild@0.27.7": true,
+    "esbuild@0.21.5": true
+  }
+}
