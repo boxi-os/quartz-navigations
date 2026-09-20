@@ -104,6 +104,53 @@ describe("client script", () => {
     expect(stored["c/index"]).toBe(true);
   });
 
+  it("does not let a remembered folder evict the trail folder of its exclusive group", async () => {
+    // `exclusive` renders `<details name>`; the browser keeps at most one of a group open, so
+    // restoring "a" here would close "b", which is the folder the current page sits in.
+    localStorage.setItem("quartz-nav:side", JSON.stringify({ "a/index": true }));
+    mount(
+      `<nav data-quartz-nav="side" data-variant="accordion" data-persist="true" data-expand-active="true" data-bp-mobile="800px">
+        <div class="quartz-nav__panel"><ul class="quartz-nav__list" data-level="1">
+          ${details("a/index", false, 'name="side-l1"')}${details("b/index", true, 'name="side-l1" data-trail="true"')}
+        </ul></div></nav>`,
+    );
+    await nav();
+    const all = document.querySelectorAll<HTMLDetailsElement>("details");
+    expect(all[0]!.open).toBe(false); // remembered, but its group is claimed by the trail
+    expect(all[1]!.open).toBe(true); // the page's own chapter stays open
+  });
+
+  it("still restores a remembered folder when no trail folder claims its group", async () => {
+    // The front page of a site: nothing is on the trail, so persistence is the only opinion.
+    localStorage.setItem("quartz-nav:side", JSON.stringify({ "a/index": true }));
+    mount(
+      `<nav data-quartz-nav="side" data-variant="accordion" data-persist="true" data-expand-active="true" data-bp-mobile="800px">
+        <div class="quartz-nav__panel"><ul class="quartz-nav__list" data-level="1">
+          ${details("a/index", false, 'name="side-l1"')}${details("b/index", false, 'name="side-l1"')}
+        </ul></div></nav>`,
+    );
+    await nav();
+    const all = document.querySelectorAll<HTMLDetailsElement>("details");
+    expect(all[0]!.open).toBe(true);
+    expect(all[1]!.open).toBe(false);
+  });
+
+  it("keeps a remembered folder of another exclusive group", async () => {
+    // One group per level: a chapter on level 1 must not silence a remembered sub-folder that
+    // belongs to a different group.
+    localStorage.setItem("quartz-nav:side", JSON.stringify({ "deep/index": true }));
+    mount(
+      `<nav data-quartz-nav="side" data-variant="accordion" data-persist="true" data-expand-active="true" data-bp-mobile="800px">
+        <div class="quartz-nav__panel"><ul class="quartz-nav__list" data-level="1">
+          ${details("b/index", true, 'name="side-l1" data-trail="true"')}${details("deep/index", false, 'name="side-l2"')}
+        </ul></div></nav>`,
+    );
+    await nav();
+    const all = document.querySelectorAll<HTMLDetailsElement>("details");
+    expect(all[0]!.open).toBe(true);
+    expect(all[1]!.open).toBe(true);
+  });
+
   it("leaves folders alone without persistence", async () => {
     localStorage.setItem("quartz-nav:side", JSON.stringify({ "a/index": true }));
     mount(

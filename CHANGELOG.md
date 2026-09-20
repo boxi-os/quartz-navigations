@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- `persistState` no longer closes the folder of the current page. With `exclusive` the folders of
+  one level are a native `<details name>` group in which the browser keeps at most one open, so
+  restoring a remembered folder after the page had rendered evicted the one the current page sits
+  in. On a site with `expandActive` (the default) and both options on, that meant only the first
+  folder ever opened by hand stayed open, and every chapter visited afterwards was shut again a
+  moment after it appeared. A remembered folder is now skipped when another folder of its own
+  exclusive group is on the active trail; with no trail folder in the group - on a front page, say
+  - it is restored as before.
+- `pager` no longer shows an empty card where a direction is missing. The first page of a site has
+  no "previous" and the last has no "next", and the placeholder that keeps the remaining button on
+  its side inherited the button's border, radius and padding.
+- `pager` stacks below the mobile breakpoint instead of squeezing both buttons into halves of a
+  phone-width line, where `max-width: 48%` leaves 168px for a page title.
+
 ## [0.3.0] - 2026-09-13
 
 ### Added

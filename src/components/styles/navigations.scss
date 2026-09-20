@@ -730,6 +730,24 @@ html.quartz-nav-lock {
       text-align: right;
     }
 
+    // The placeholder for a missing direction. The first page of a site has no "previous" and
+    // the last has no "next", and `renderPager` emits an empty span for it so the remaining
+    // button keeps its side. It must not be styled like a button, or the page shows an empty
+    // card - the rule above sets a border, a radius and padding on both children by class.
+    //
+    // **After** that rule, not before it: `.quartz-nav__prev--empty` and `.quartz-nav__prev` are
+    // one class each, so they have the same specificity and the later one wins. Written above,
+    // this `display: none` was overruled by the `display: inline-flex` of the buttons and the
+    // empty card stayed - measured on a real site.
+    //
+    // `display: none` rather than `visibility: hidden`, because nothing needs the space:
+    // `justify-content: space-between` and the `margin-left: auto` below put the remaining
+    // button on its own side whether or not the placeholder is in the flow.
+    .quartz-nav__prev--empty,
+    .quartz-nav__next--empty {
+      display: none;
+    }
+
     .quartz-nav__pager-body {
       display: flex;
       flex-direction: column;
@@ -754,6 +772,31 @@ html.quartz-nav-lock {
       display: inline-flex;
       align-items: center;
       gap: 0.4em;
+    }
+
+    // Two buttons beside each other need two halves of a line, and below the mobile breakpoint
+    // there is no line to halve: `max-width: 48%` of a 350px screen is 168px, and a page title
+    // is longer than that far more often than not. They stack instead, each taking the width.
+    //
+    // `margin-left` and `text-align` go back with it: in a row they push the second button to
+    // the far side, in a column they would indent it by the whole remaining width and right-align
+    // a title under a left-aligned label.
+    @media (max-width: __NAV_BP_MOBILE__) {
+      flex-direction: column;
+
+      .quartz-nav__prev,
+      .quartz-nav__next {
+        max-width: 100%;
+      }
+
+      .quartz-nav__next {
+        margin-left: 0;
+        text-align: left;
+      }
+
+      .quartz-nav__next .quartz-nav__pager-body {
+        align-items: flex-start;
+      }
     }
   }
 

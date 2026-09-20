@@ -59,12 +59,35 @@ function setupAnimation(nav: HTMLElement): void {
   });
 }
 
+/**
+ * Names of the exclusive groups that already hold a folder on the active trail.
+ *
+ * `exclusive` renders `<details name="…">`, a native group in which the browser keeps at most
+ * one open - opening one closes the others, and that includes an `open` set from script. So a
+ * remembered folder restored below would not simply be an extra open folder: it would *close*
+ * the one the current page sits in. Measured on a real site before this guard existed: after
+ * opening one chapter, every chapter visited afterwards rendered open and was shut again a
+ * moment later.
+ *
+ * The trail wins, because it is the one state the page itself asks for. Only groups that have a
+ * trail folder are listed; with no trail folder in the group - on a front page, say - the
+ * remembered folder is restored as before, which is the whole point of `persistState`.
+ */
+function trailClaimedGroups(nav: HTMLElement): Set<string> {
+  const claimed = new Set<string>();
+  nav.querySelectorAll<HTMLDetailsElement>("details[data-folder][name]").forEach((details) => {
+    if (details.dataset.trail === "true") claimed.add(details.getAttribute("name") ?? "");
+  });
+  return claimed;
+}
+
 function setupFolders(nav: HTMLElement): void {
   const id = nav.dataset.quartzNav ?? "";
   const persist = nav.dataset.persist === "true";
   const expandActive = nav.dataset.expandActive === "true";
   const query = mobileQuery(nav);
   const state = persist ? readState(id) : {};
+  const claimed = expandActive ? trailClaimedGroups(nav) : new Set<string>();
   // Folders that only collapse on mobile are rendered open so the desktop layout works
   // without JS; they follow the viewport, also when it crosses the breakpoint later.
   const mobileOnly: (() => void)[] = [];
@@ -73,14 +96,17 @@ function setupFolders(nav: HTMLElement): void {
     const slug = details.dataset.folder ?? "";
     const onTrail = details.dataset.trail === "true";
     const stored = persist && slug in state ? state[slug] === true : undefined;
+    // Opening this one would close the trail folder of its own exclusive group.
+    const wouldEvictTrail =
+      stored === true && !onTrail && claimed.has(details.getAttribute("name") ?? "\u0000");
     if (details.dataset.mobileCollapsible !== undefined) {
       const applyViewport = () => {
         const remembered = persist && slug in state ? state[slug] === true : false;
-        details.open = !(query?.matches ?? false) || onTrail || remembered;
+        details.open = !(query?.matches ?? false) || onTrail || (remembered && !wouldEvictTrail);
       };
       applyViewport();
       mobileOnly.push(applyViewport);
-    } else if (stored !== undefined && !(expandActive && onTrail)) {
+    } else if (stored !== undefined && !(expandActive && onTrail) && !wouldEvictTrail) {
       details.open = stored;
     }
     if (!persist) return;
