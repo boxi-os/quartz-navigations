@@ -118,10 +118,13 @@ html.quartz-nav-lock {
   }
 
   // Rows: a link or a summary fills the whole row, so the entire item is the click target.
+  // Items align to the top, and icon and chevron are one line tall: a title that wraps keeps
+  // its icon beside the first line instead of centred on the whole block. On a single line
+  // this is the same as centring.
   .quartz-nav__link,
   .quartz-nav__summary {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 0.4em;
     padding: var(--quartz-nav-item-padding-y) var(--quartz-nav-item-padding-x);
     border-radius: var(--quartz-nav-radius);
@@ -240,6 +243,15 @@ html.quartz-nav-lock {
     height: var(--quartz-nav-icon-size);
   }
 
+  // A box one line tall, the glyph centred in it (an SVG keeps its size and sits centred).
+  span.quartz-nav__icon {
+    height: 1lh;
+  }
+
+  svg.quartz-nav__icon {
+    margin-block: calc((1lh - var(--quartz-nav-icon-size)) / 2);
+  }
+
   svg.quartz-nav__icon {
     color: var(--quartz-nav-color-icon);
   }
@@ -301,6 +313,8 @@ html.quartz-nav-lock {
 
   .quartz-nav__chevron {
     display: inline-flex;
+    align-items: center;
+    height: 1lh;
     flex: none;
     margin-left: auto;
     color: var(--quartz-nav-color-muted);
@@ -337,6 +351,7 @@ html.quartz-nav-lock {
     position: absolute;
     top: 0;
     right: 0;
+    align-items: center;
     justify-content: center;
     width: var(--quartz-nav-toggle-size);
     height: var(--quartz-nav-row-height);
