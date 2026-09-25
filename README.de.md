@@ -414,7 +414,7 @@ verstecken.
 
 ## Wie gut ist der Code geprüft?
 
-`npm run check` führt Typecheck, Linter, Formatter und 105 Tests aus; die CI macht bei jedem Push
+`npm run check` führt Typecheck, Linter, Formatter und 108 Tests aus; die CI macht bei jedem Push
 dasselbe, baut das Plugin und prüft, dass das committete `dist/` dem Build entspricht. Das ist keine Garantie, aber etwas, das du selbst ausführen kannst, bevor du
 dem Plugin vertraust.
 

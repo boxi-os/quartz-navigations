@@ -407,7 +407,7 @@ am aware that vibe coding is a contested subject, and I do not want to hide anyt
 
 ## How well is the code checked?
 
-`npm run check` runs the typecheck, the linter, the formatter and 105 tests; CI runs the same on
+`npm run check` runs the typecheck, the linter, the formatter and 108 tests; CI runs the same on
 every push, builds the plugin and verifies that the committed `dist/` matches the build. That is not a guarantee, but it is something you can run yourself before
 you trust the plugin.
 
