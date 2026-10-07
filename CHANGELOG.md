@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- `quartz.configSchema` in `package.json`: a JSON Schema of all 46 options, nested ones included,
+  with descriptions in English and German, groups, an order, German labels for the choices and the
+  conditions under which an option applies — the `tabs`, `flyout`, `columns` and `pager` blocks only
+  with their variant, `align` with `bar`, `dropdown`, `mega` and `tabs`, `trigger` with `dropdown`,
+  `mega` and `flyout`, `dateField` with `sort: date`. Quartz itself only passes it on; editors such
+  as QuartzControl build their option form from it. A test holds the schema against
+  `NavigationOptions` and every type it uses, and against `quartz.defaultOptions`, in both
+  directions.
+
 ## [0.3.2] - 2026-09-21
 
 ### Fixed
