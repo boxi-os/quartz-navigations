@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- 17 German descriptions in `quartz.configSchema` began with the rest of a Markdown table row -
+  ``string` | `"auto"` | Zusammenspiel …`` - because the option table of `README.de.md` they were
+  taken from was split at escaped pipes. Three more pointed at sections of the README (“siehe
+  unten”) that an editor does not have. The variant options now come last in the order, after the
+  groups they depend on. A test now rejects a description with an odd number of backticks or a pipe
+  between code spans.
+
 ## [0.4.0] - 2026-10-07
 
 ### Added
