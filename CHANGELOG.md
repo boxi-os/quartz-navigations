@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- The option groups of `quartz.configSchema` follow what an editor needs: the variant and the options
+  only some variants read (`align`, `trigger`, the folder behaviour, `tabs`, `flyout`, `select`,
+  `columns`, `pager`) in one group, then Page selection, Hide, Order, Labels and icons, On
+  smartphones and Technical (`ariaLabel`, `className`, `id`, `frontmatterKeys`). The group
+  "Presentation" with eleven unrelated options and "Variant options" are gone. Options and their
+  defaults are unchanged.
+
 ## [0.4.1] - 2026-10-07
 
 ### Fixed
