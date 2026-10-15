@@ -418,7 +418,7 @@
               "description": "Off-canvas burger. Defaults to `menu`.",
               "x-quartz-l10n": {
                 "de": {
-                  "description": "Burger-Knopf der Schublade. Standard: `menu`."
+                  "description": "Burger-Button der Schublade. Standard: `menu`."
                 }
               }
             },
@@ -427,7 +427,7 @@
               "description": "Off-canvas close button. Defaults to `x`.",
               "x-quartz-l10n": {
                 "de": {
-                  "description": "Schließen-Knopf der Schublade. Standard: `x`."
+                  "description": "Schließen-Button der Schublade. Standard: `x`."
                 }
               }
             },
@@ -878,7 +878,7 @@
           "x-quartz-order": 140,
           "x-quartz-l10n": {
             "de": {
-              "description": "Aufklappbare Ordner: `toggle` – die ganze Zeile klappt den Ordner auf und zu; `link` – die Zeile ist ein Link, aufgeklappt wird mit dem Knopf am Ende.",
+              "description": "Aufklappbare Ordner: `toggle` – die ganze Zeile klappt den Ordner auf und zu; `link` – die Zeile ist ein Link, aufgeklappt wird mit dem Button am Ende.",
               "group": "Variante",
               "enum": {
                 "link": "Zeile ist ein Link",
