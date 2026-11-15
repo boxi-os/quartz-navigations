@@ -5,7 +5,7 @@ Provider-agnostic instruction file for AI coding assistants working on this repo
 ## Project Overview
 
 `quartz-navigations` is a Quartz v5 component plugin. It builds a navigation tree from the content
-folder structure at build time and renders it in ten presentations; one YAML entry per instance.
+folder structure at build time and renders it in eleven presentations; one YAML entry per instance.
 See `ARCHITECTURE.md` for the lifecycle and file map, `README.md` for user-facing options.
 
 ## Files to Modify
@@ -18,7 +18,8 @@ See `ARCHITECTURE.md` for the lifecycle and file map, `README.md` for user-facin
   `--quartz-nav-*` custom property (document new ones in both READMEs); keep the breakpoint
   placeholders `__NAV_BP_MOBILE__` / `__NAV_BP_DESKTOP__` in media queries.
 - `src/icons.tsx`: Lucide lookup and inline SVG rendering.
-- `src/breakpoints.ts`: reads the site's `quartz/styles/variables.scss`.
+- `src/breakpoints.ts`: reads the site's breakpoints (`.quartz-gui/layout-breakpoints.json`, else
+  `quartz/styles/variables.scss`).
 - `src/scripts/navigations.inline.ts`: browser script.
 - `src/i18n/locales/*.ts`: plugin UI strings; add a locale by copying `en-US.ts` and registering
   it in `src/i18n/index.ts`.

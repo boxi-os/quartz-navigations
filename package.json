@@ -1,7 +1,7 @@
 {
   "name": "quartz-navigations",
   "version": "0.4.3",
-  "description": "Quartz v5 component plugin that renders navigations from the content folder structure: multiple instances, selectable levels, ten presentation variants, manual sorting, active-state marking explorer-style folder and file icons (Lucide) and a type scale by level.",
+  "description": "Quartz v5 component plugin that renders navigations from the content folder structure: multiple instances, selectable levels, eleven presentation variants, manual sorting, active-state marking explorer-style folder and file icons (Lucide) and a type scale by level.",
   "type": "module",
   "license": "MIT",
   "author": "boxi-os",
@@ -83,7 +83,7 @@
   "quartz": {
     "name": "quartz-navigations",
     "displayName": "Navigations",
-    "description": "Navigations from the content folder structure: multiple instances, selectable levels, ten presentation variants, manual sorting, active-state marking explorer-style folder and file icons (Lucide) and a type scale by level.",
+    "description": "Navigations from the content folder structure: multiple instances, selectable levels, eleven presentation variants, manual sorting, active-state marking explorer-style folder and file icons (Lucide) and a type scale by level.",
     "category": [
       "component"
     ],
@@ -110,6 +110,8 @@
         "chevron": "chevron-down",
         "menu": "menu",
         "close": "x",
+        "pin": "pin",
+        "unpin": "pin-off",
         "previous": "chevron-left",
         "next": "chevron-right"
       },
@@ -154,6 +156,16 @@
       "flyout": {
         "side": "auto"
       },
+      "rail": {
+        "rest": "hidden",
+        "side": "left",
+        "expand": "hover",
+        "content": "overlay",
+        "hoverContent": "same",
+        "pinContent": "same",
+        "onNavigate": "close",
+        "pin": true
+      },
       "select": {
         "button": false
       },
@@ -192,7 +204,8 @@
             "mega",
             "columns",
             "select",
-            "pager"
+            "pager",
+            "rail"
           ],
           "description": "Presentation; each variant implies its orientation. Defaults to `tree`.",
           "x-quartz-group": "Variant",
@@ -211,7 +224,8 @@
                 "mega": "Mega-Menü",
                 "columns": "Spalten",
                 "select": "Auswahlliste",
-                "pager": "Zurück / Weiter"
+                "pager": "Zurück / Weiter",
+                "rail": "Nexus-Leiste"
               }
             }
           }
@@ -428,6 +442,24 @@
               "x-quartz-l10n": {
                 "de": {
                   "description": "Schließen-Button der Schublade. Standard: `x`."
+                }
+              }
+            },
+            "pin": {
+              "type": "string",
+              "description": "Rail button that pins the open menu. Defaults to `pin`.",
+              "x-quartz-l10n": {
+                "de": {
+                  "description": "Button der Rail, der das offene Menü anheftet. Standard: `pin`."
+                }
+              }
+            },
+            "unpin": {
+              "type": "string",
+              "description": "The same button while the menu is pinned. Defaults to `pin-off`.",
+              "x-quartz-l10n": {
+                "de": {
+                  "description": "Derselbe Button, solange das Menü angeheftet ist. Standard: `pin-off`."
                 }
               }
             },
@@ -975,31 +1007,31 @@
           "properties": {
             "mobile": {
               "type": "string",
-              "description": "Mobile breakpoint, e.g. `800px`. Defaults to the value in `quartz/styles/variables.scss`.",
+              "description": "Mobile breakpoint, e.g. `800px`. Defaults to the site's value (see `breakpoints`).",
               "x-quartz-l10n": {
                 "de": {
-                  "description": "Mobile-Breakpoint, z. B. `800px`. Standard: der Wert aus `quartz/styles/variables.scss`."
+                  "description": "Mobile-Breakpoint, z. B. `800px`. Standard: der Wert der Site (siehe `breakpoints`)."
                 }
               }
             },
             "desktop": {
               "type": "string",
-              "description": "Desktop breakpoint, e.g. `1200px`. Defaults to the value in `quartz/styles/variables.scss`.",
+              "description": "Desktop breakpoint, e.g. `1200px`. Defaults to the site's value (see `breakpoints`).",
               "x-quartz-l10n": {
                 "de": {
-                  "description": "Desktop-Breakpoint, z. B. `1200px`. Standard: der Wert aus `quartz/styles/variables.scss`."
+                  "description": "Desktop-Breakpoint, z. B. `1200px`. Standard: der Wert der Site (siehe `breakpoints`)."
                 }
               }
             }
           },
           "additionalProperties": false,
-          "description": "Override the breakpoints read from `quartz/styles/variables.scss`.",
+          "description": "Override the breakpoints read from the site: QuartzControl's frame breakpoints (`.quartz-gui/layout-breakpoints.json`) where present, else `quartz/styles/variables.scss`. The stylesheet is shared by all instances, so use the same value in every entry; `desktop` is accepted but currently unused.",
           "x-quartz-group": "On smartphones",
           "x-quartz-order": 610,
           "x-quartz-advanced": true,
           "x-quartz-l10n": {
             "de": {
-              "description": "Breakpoints der Site überschreiben, z. B. `{ mobile: 640px }`. Alle Instanzen teilen ein Stylesheet, also in jedem Eintrag denselben Wert setzen. `desktop` wird angenommen, derzeit aber nicht benutzt.",
+              "description": "Breakpoints der Site überschreiben, z. B. `{ mobile: 640px }`. Standard: die Frame-Breakpoints von QuartzControl (`.quartz-gui/layout-breakpoints.json`), sonst `quartz/styles/variables.scss`. Alle Instanzen teilen ein Stylesheet, also in jedem Eintrag denselben Wert setzen. `desktop` wird angenommen, derzeit aber nicht benutzt.",
               "group": "Auf dem Smartphone"
             }
           }
@@ -1064,6 +1096,158 @@
           "x-quartz-l10n": {
             "de": {
               "description": "Optionen der Variante `flyout`.",
+              "group": "Variante"
+            }
+          }
+        },
+        "rail": {
+          "type": "object",
+          "properties": {
+            "rest": {
+              "type": "string",
+              "enum": [
+                "hidden",
+                "icons"
+              ],
+              "description": "At rest, `hidden` shows only the menu button; hovering it slides in a strip of level-1 icons. `icons` keeps the strip on screen, over the page or, with `content: push`, beside it. Defaults to `hidden`.",
+              "x-quartz-l10n": {
+                "de": {
+                  "description": "`rail`: Was im Ruhezustand zu sehen ist. `hidden` zeigt nur den Menü-Button, Hover darüber blendet die Icon-Leiste ein. `icons` zeigt die Icon-Leiste dauerhaft, über der Seite oder mit `content: push` daneben.",
+                  "enum": {
+                    "hidden": "Nur Button",
+                    "icons": "Icon-Leiste"
+                  }
+                }
+              }
+            },
+            "side": {
+              "type": "string",
+              "enum": [
+                "left",
+                "right"
+              ],
+              "description": "Screen edge of the panel. Defaults to `left`.",
+              "x-quartz-l10n": {
+                "de": {
+                  "description": "`rail`: Bildschirmrand, an dem die Leiste sitzt.",
+                  "enum": {
+                    "left": "Links",
+                    "right": "Rechts"
+                  }
+                }
+              }
+            },
+            "expand": {
+              "type": "string",
+              "enum": [
+                "hover",
+                "strip",
+                "click"
+              ],
+              "description": "`hover` opens the strip when the pointer rests on the button and the full menu when it enters the strip; `strip` only expands the strip on hover (the button needs a click); `click` opens only on click. Touch screens always use click. Defaults to `hover`.",
+              "x-quartz-l10n": {
+                "de": {
+                  "description": "`rail`: `hover` zeigt die Icon-Leiste, sobald der Zeiger auf dem Button ruht, und das ganze Menü, sobald er die Leiste erreicht. `strip` klappt nur die Leiste bei Hover aus, der Button braucht einen Klick. `click` öffnet nur per Klick. Touchscreens öffnen immer per Klick.",
+                  "enum": {
+                    "hover": "Bei Hover",
+                    "strip": "Hover über der Leiste",
+                    "click": "Per Klick"
+                  }
+                }
+              }
+            },
+            "content": {
+              "type": "string",
+              "enum": [
+                "overlay",
+                "push"
+              ],
+              "description": "`overlay` lays the menu over the page; `push` moves the page aside by the visible width of the panel (padding on `<body>`): the full menu, the strip with `rest: icons`. Defaults to `overlay`.",
+              "x-quartz-l10n": {
+                "de": {
+                  "description": "`rail`: `overlay` legt das Menü über die Seite. `push` schiebt die Seite um die sichtbare Breite des Panels zur Seite (Padding am `<body>`): das ganze Menü, mit `rest: icons` die Leiste.",
+                  "enum": {
+                    "overlay": "Überlagern",
+                    "push": "Verschieben"
+                  }
+                }
+              }
+            },
+            "hoverContent": {
+              "type": "string",
+              "enum": [
+                "same",
+                "overlay",
+                "push"
+              ],
+              "description": "The same for the strip slid in from the button and a menu opened by hover, e.g. `overlay` so that the page does not shift under a passing pointer. `same` follows `content`; a pinned menu follows `pinContent`. Defaults to `same`.",
+              "x-quartz-l10n": {
+                "de": {
+                  "description": "`rail`: Dasselbe für die vom Button eingeblendete Leiste und ein per Hover geöffnetes Menü, etwa `overlay`, damit die Seite unter einem vorbeiziehenden Zeiger nicht springt. `same` folgt `content`; ein angeheftetes Menü folgt `pinContent`.",
+                  "enum": {
+                    "same": "Wie content",
+                    "overlay": "Überlagern",
+                    "push": "Verschieben"
+                  }
+                }
+              }
+            },
+            "pinContent": {
+              "type": "string",
+              "enum": [
+                "same",
+                "overlay",
+                "push"
+              ],
+              "description": "The same for a pinned menu, e.g. `push` with `content: overlay`: the menu lies over the page until it is pinned, then sits beside it. `same` follows `content`. Defaults to `same`.",
+              "x-quartz-l10n": {
+                "de": {
+                  "description": "`rail`: Dasselbe für ein angeheftetes Menü, etwa `push` zu `content: overlay`: Das Menü liegt über der Seite, bis es angeheftet wird, dann sitzt es daneben. `same` folgt `content`.",
+                  "enum": {
+                    "same": "Wie content",
+                    "overlay": "Überlagern",
+                    "push": "Verschieben"
+                  }
+                }
+              }
+            },
+            "onNavigate": {
+              "type": "string",
+              "enum": [
+                "close",
+                "keep"
+              ],
+              "description": "`close`: following a link in the open menu closes it. `keep`: the menu stays open on the next page and closes once the pointer leaves it (wide screens only). Defaults to `close`.",
+              "x-quartz-l10n": {
+                "de": {
+                  "description": "`rail`: `close` schließt das offene Menü, sobald darin ein Link angeklickt wird. `keep` lässt es auf der nächsten Seite offen und schließt es erst, wenn der Zeiger es verlässt (nur auf breiten Bildschirmen).",
+                  "enum": {
+                    "close": "Schließen",
+                    "keep": "Offen lassen"
+                  }
+                }
+              }
+            },
+            "pin": {
+              "type": "boolean",
+              "description": "Show a pin button in the open menu. A pinned menu stays open on clicks outside, Escape and page changes, and is restored on every page until it is unpinned or closed with the menu button (remembered in `localStorage`; not on small screens). Defaults to `true`.",
+              "x-quartz-l10n": {
+                "de": {
+                  "description": "`rail`: Zeigt im offenen Menü einen Button zum Anheften. Ein angeheftetes Menü bleibt bei Klicks daneben, Escape und Seitenwechseln offen und wird auf jeder Seite wiederhergestellt, bis es gelöst oder mit dem Menü-Button geschlossen wird (in `localStorage` gemerkt, nicht auf kleinen Bildschirmen)."
+                }
+              }
+            }
+          },
+          "additionalProperties": false,
+          "description": "Options of the `rail` variant.",
+          "x-quartz-when": {
+            "variant": "rail"
+          },
+          "x-quartz-group": "Variant",
+          "x-quartz-order": 205,
+          "x-quartz-l10n": {
+            "de": {
+              "description": "Optionen der Variante `rail`.",
               "group": "Variante"
             }
           }

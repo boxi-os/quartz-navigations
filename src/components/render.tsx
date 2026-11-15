@@ -41,6 +41,7 @@ function typeIconsAt(level: number, ctx: RenderContext): boolean {
     case "dropdown":
     case "mega":
     case "columns":
+    case "rail":
       return level >= 2;
     default:
       return false;
@@ -92,10 +93,43 @@ function icon(node: NavNode, ctx: RenderContext, typeIcon?: TypeIcon) {
   return null;
 }
 
-function label(node: NavNode, ctx: RenderContext, text?: string, typeIcon?: TypeIcon) {
+/**
+ * First letter or digit of a title, the rail strip's stand-in for an entry without an icon of
+ * its own. A title without either keeps its first character.
+ */
+export function monogramOf(title: string): string {
+  const chars = Array.from(title.trim());
+  const first = chars.find((c) => /[\p{L}\p{N}]/u.test(c)) ?? chars[0] ?? "";
+  return first.toLocaleUpperCase();
+}
+
+function monogram(text: string) {
+  return (
+    <span class="quartz-nav__icon quartz-nav__monogram" aria-hidden="true">
+      {monogramOf(text)}
+    </span>
+  );
+}
+
+/**
+ * The rail strip shows only the icon column of its level-1 rows, so every such row needs a
+ * glyph: the custom icon where one is set and allowed by `icons`, otherwise `lead`.
+ */
+function railLead(level: number, node: NavNode, ctx: RenderContext, text?: string) {
+  if (ctx.opts.variant !== "rail" || level !== 1) return undefined;
+  return monogram(text ?? node.title);
+}
+
+function label(
+  node: NavNode,
+  ctx: RenderContext,
+  text?: string,
+  typeIcon?: TypeIcon,
+  lead?: unknown,
+) {
   return (
     <>
-      {icon(node, ctx, typeIcon)}
+      {icon(node, ctx, typeIcon) ?? lead}
       <span class="quartz-nav__text">{text ?? node.title}</span>
     </>
   );
@@ -111,6 +145,8 @@ function titleEl(
     text?: string;
     target?: string;
     typeIcon?: TypeIcon;
+    /** Glyph used when the row would otherwise have none (the rail strip). */
+    lead?: unknown;
   },
 ) {
   const state = stateOf(node, ctx);
@@ -119,7 +155,7 @@ function titleEl(
   if (!target) {
     return (
       <span class={classNames(cls, "quartz-nav__link--static")}>
-        {label(node, ctx, extra?.text, extra?.typeIcon)}
+        {label(node, ctx, extra?.text, extra?.typeIcon, extra?.lead)}
       </span>
     );
   }
@@ -129,7 +165,7 @@ function titleEl(
       href={hrefFor(ctx.slug, target)}
       aria-current={state === "active" ? "page" : undefined}
     >
-      {label(node, ctx, extra?.text, extra?.typeIcon)}
+      {label(node, ctx, extra?.text, extra?.typeIcon, extra?.lead)}
     </a>
   );
 }
@@ -150,6 +186,7 @@ function variantCollapsible(level: number, ctx: RenderContext): boolean {
   switch (ctx.opts.variant) {
     case "accordion":
     case "flyout":
+    case "rail":
       return true;
     case "dropdown":
     case "mega":
@@ -207,6 +244,7 @@ function renderItem(node: NavNode, level: number, ctx: RenderContext) {
 
   const withType = typeIconsAt(level, ctx);
   const pageIcon: TypeIcon | undefined = withType ? "file" : undefined;
+  const lead = railLead(level, node, ctx);
 
   if (!collapsible) {
     // The glyph reports the folder's state, not whether its children happen to be visible:
@@ -218,7 +256,10 @@ function renderItem(node: NavNode, level: number, ctx: RenderContext) {
       : undefined;
     return (
       <li class={itemClass} data-slug={node.slug}>
-        {titleEl(node, ctx, { typeIcon: node.kind === "folder" ? folderIcon : pageIcon })}
+        {titleEl(node, ctx, {
+          typeIcon: node.kind === "folder" ? folderIcon : pageIcon,
+          lead,
+        })}
         {showChildren && (
           <ul class="quartz-nav__list" data-level={String(level + 1)}>
             {indexEntry(node, ctx, level + 1)}
@@ -246,7 +287,7 @@ function renderItem(node: NavNode, level: number, ctx: RenderContext) {
       class={classNames(itemClass, separateLink ? "quartz-nav__item--split" : undefined)}
       data-slug={node.slug}
     >
-      {separateLink && titleEl(node, ctx, { target, typeIcon: toggleIcon })}
+      {separateLink && titleEl(node, ctx, { target, typeIcon: toggleIcon, lead })}
       <details
         class="quartz-nav__folder"
         open={open}
@@ -264,7 +305,7 @@ function renderItem(node: NavNode, level: number, ctx: RenderContext) {
           {separateLink ? (
             <span class="quartz-nav__sr-only">{ctx.t.nav.expand({ title: node.title })}</span>
           ) : (
-            titleEl(node, ctx, { forceStatic: true, typeIcon: toggleIcon })
+            titleEl(node, ctx, { forceStatic: true, typeIcon: toggleIcon, lead })
           )}
           {(opts.chevrons || separateLink) && chevron(ctx)}
         </summary>
@@ -328,6 +369,7 @@ function homeEntry(ctx: RenderContext) {
         target: base.slug,
         text: ctx.t.nav.home,
         typeIcon: typeIconsAt(1, ctx) ? "home" : undefined,
+        lead: ctx.opts.variant === "rail" ? typeIconEl("home", ctx) : undefined,
       })}
     </li>
   );
@@ -414,6 +456,8 @@ function rootClass(ctx: RenderContext, ...extra: (string | undefined)[]) {
     opts.variant === "flyout" && opts.flyout.side === "left"
       ? "quartz-nav--flyout-left"
       : undefined,
+    opts.variant === "rail" ? `quartz-nav--rail-${opts.rail.rest}` : undefined,
+    opts.variant === "rail" ? `quartz-nav--rail-${opts.rail.side}` : undefined,
     opts.className || undefined,
     ...extra,
   );
@@ -429,6 +473,12 @@ function rootData(ctx: RenderContext) {
     "data-expand-active": opts.expandActive ? "true" : undefined,
     "data-trigger": POPUP_VARIANTS.has(opts.variant) ? opts.trigger : undefined,
     "data-flyout-side": opts.variant === "flyout" ? opts.flyout.side : undefined,
+    "data-rail-rest": opts.variant === "rail" ? opts.rail.rest : undefined,
+    "data-rail-expand": opts.variant === "rail" ? opts.rail.expand : undefined,
+    "data-rail-content": opts.variant === "rail" ? opts.rail.content : undefined,
+    "data-rail-hover-content": opts.variant === "rail" ? opts.rail.hoverContent : undefined,
+    "data-rail-pin-content": opts.variant === "rail" ? opts.rail.pinContent : undefined,
+    "data-rail-on-navigate": opts.variant === "rail" ? opts.rail.onNavigate : undefined,
     "data-bp-mobile": ctx.mobileBreakpoint,
   };
 }
@@ -437,6 +487,7 @@ export function renderNavigation(ctx: RenderContext) {
   const { opts, t } = ctx;
   const { root } = ctx.scope;
   const ariaLabel = navLabel(ctx);
+  const rail = opts.variant === "rail";
   const offcanvas = opts.mobile === "offcanvas";
   const toggleId = `${ctx.id}-toggle`;
   const panelId = `${ctx.id}-panel`;
@@ -454,9 +505,26 @@ export function renderNavigation(ctx: RenderContext) {
       </ul>
     );
 
+  const title = opts.title && <h3 class="quartz-nav__title">{opts.title}</h3>;
   return (
     <nav class={rootClass(ctx)} aria-label={ariaLabel} {...rootData(ctx)}>
-      {opts.title && <h3 class="quartz-nav__title">{opts.title}</h3>}
+      {!rail && title}
+      {rail && (
+        <>
+          {/* The panel is fixed to a screen edge; only this button stays where the layout puts
+              the navigation. Its states (closed, strip, open) are driven by the client script. */}
+          <button
+            type="button"
+            class="quartz-nav__rail-trigger"
+            aria-label={t.nav.toggleMenu}
+            aria-controls={panelId}
+            aria-expanded="false"
+          >
+            <LucideIcon name={opts.iconNames.menu} size="1.5em" />
+          </button>
+          <div class="quartz-nav__rail-backdrop" aria-hidden="true"></div>
+        </>
+      )}
       {offcanvas && (
         <>
           <input
@@ -482,12 +550,35 @@ export function renderNavigation(ctx: RenderContext) {
             <LucideIcon name={opts.iconNames.close} size="1.5em" />
           </label>
         )}
+        {rail && (title || opts.rail.pin) && (
+          <div class="quartz-nav__rail-head">
+            {title}
+            {opts.rail.pin && (
+              <button
+                type="button"
+                class="quartz-nav__rail-pin"
+                aria-label={t.nav.pinMenu}
+                aria-pressed="false"
+              >
+                <LucideIcon
+                  name={opts.iconNames.pin}
+                  className="quartz-nav__icon quartz-nav__icon--pin"
+                />
+                <LucideIcon
+                  name={opts.iconNames.unpin}
+                  className="quartz-nav__icon quartz-nav__icon--unpin"
+                />
+              </button>
+            )}
+          </div>
+        )}
         {/* A language tree may lack a start page: no row without a name. */}
         {opts.showScopeRoot && root.title && (
           <div class="quartz-nav__root">
             {titleEl(root, ctx, {
               className: "quartz-nav__root-link",
               typeIcon: typeIconsAt(1, ctx) ? "folder-open" : undefined,
+              lead: railLead(1, root, ctx),
             })}
           </div>
         )}

@@ -11,6 +11,49 @@ html.quartz-nav-lock {
   overflow: hidden;
 }
 
+// The room a rail takes at each screen edge (`rail.content: push`, `rail.rest: icons`), set on
+// <html> by the client script. Registered as lengths so that they animate: everything a site
+// derives from them (the body padding below, a full-width header reaching back over it) then
+// moves in step with the panel instead of jumping.
+@property --quartz-nav-rail-offset-left {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 0px;
+}
+
+@property --quartz-nav-rail-offset-right {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 0px;
+}
+
+html.quartz-nav-rail-push-left,
+html.quartz-nav-rail-push-right {
+  transition:
+    --quartz-nav-rail-offset-left 0.2s ease,
+    --quartz-nav-rail-offset-right 0.2s ease;
+}
+
+html.quartz-nav-rail-push-left body {
+  padding-left: var(--quartz-nav-rail-offset-left);
+}
+
+html.quartz-nav-rail-push-right body {
+  padding-right: var(--quartz-nav-rail-offset-right);
+}
+
+// A pinned menu restored on page load is simply there, without sliding in or moving the page.
+html.quartz-nav-rail-instant {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.quartz-nav-rail-push-left,
+  html.quartz-nav-rail-push-right {
+    transition: none;
+  }
+}
+
 @keyframes quartz-nav-drop {
   from {
     opacity: 0;
@@ -72,6 +115,13 @@ html.quartz-nav-lock {
   --quartz-nav-offcanvas-width: min(20rem, 85vw);
   --quartz-nav-offcanvas-padding: 1rem;
   --quartz-nav-offcanvas-z: 100;
+  // Rail. `--quartz-nav-rail-top` is deliberately not set here: unset, the panel starts below
+  // the sticky or fixed bar the navigation sits in (measured by the client script).
+  --quartz-nav-rail-width: 3.5rem;
+  --quartz-nav-rail-open-width: min(20rem, 100vw);
+  --quartz-nav-rail-icon-size: 1.4rem;
+  --quartz-nav-rail-row-height: 2.75rem;
+  --quartz-nav-rail-z: 100;
   // Colors and fonts, from the Quartz theme
   --quartz-nav-font: var(--bodyFont, inherit);
   --quartz-nav-heading-font: var(--headerFont, inherit);
@@ -414,6 +464,7 @@ html.quartz-nav-lock {
   .quartz-nav__burger,
   .quartz-nav__backdrop,
   .quartz-nav__close,
+  .quartz-nav__rail-backdrop,
   .quartz-nav__mobile-select {
     display: none;
   }
@@ -680,7 +731,8 @@ html.quartz-nav-lock {
   // holds the current page, and an accent bar on the current row.
   &.quartz-nav--tree,
   &.quartz-nav--accordion,
-  &.quartz-nav--flyout {
+  &.quartz-nav--flyout,
+  &.quartz-nav--rail {
     .quartz-nav__item > .quartz-nav__link.active {
       position: relative;
 
@@ -815,6 +867,276 @@ html.quartz-nav-lock {
     }
   }
 
+  // Rail (the "Nexus" menu): a button where the layout puts the navigation and a panel fixed
+  // to a screen edge. The client script sets `data-rail-state`: `closed`, `part` (a strip of
+  // level-1 icons) or `open` (the full menu). The panel's content always has the open width and
+  // the panel clips it, so the strip is the icon column of the full menu and nothing reflows
+  // while it expands. Without the script, focus inside the navigation opens the full menu.
+  &.quartz-nav--rail {
+    .quartz-nav__rail-trigger {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.25rem;
+      border: 0;
+      border-radius: var(--quartz-nav-radius);
+      background: none;
+      color: var(--quartz-nav-color-heading);
+      font: inherit;
+      cursor: pointer;
+      transition:
+        background-color var(--quartz-nav-transition),
+        color var(--quartz-nav-transition);
+
+      &:hover {
+        background-color: var(--quartz-nav-bg-hover);
+      }
+
+      &[aria-expanded="true"] {
+        color: var(--quartz-nav-color-active);
+      }
+
+      &:focus-visible {
+        outline: 2px solid var(--quartz-nav-focus);
+        outline-offset: 2px;
+      }
+    }
+
+    // Every box property is stated, because the script may lift the panel into the top layer
+    // (inside a clipping sidebar) and a popover brings its own inset, size, border and colors.
+    > .quartz-nav__panel {
+      position: fixed;
+      inset: var(--quartz-nav-rail-top, var(--_rail-top, 0px)) auto 0 0;
+      z-index: var(--quartz-nav-rail-z);
+      box-sizing: border-box;
+      width: var(--quartz-nav-rail-width);
+      height: auto;
+      max-width: none;
+      margin: 0;
+      padding: 0;
+      overflow: hidden auto;
+      overscroll-behavior: contain;
+      scrollbar-width: none;
+      color: inherit;
+      background: var(--quartz-nav-bg-panel);
+      border: 0;
+      border-inline-end: 1px solid var(--quartz-nav-border);
+      transition:
+        transform var(--quartz-nav-transition),
+        width var(--quartz-nav-transition),
+        visibility var(--quartz-nav-transition),
+        box-shadow var(--quartz-nav-transition);
+
+      > * {
+        box-sizing: border-box;
+        width: var(--quartz-nav-rail-open-width);
+      }
+
+      > .quartz-nav__list {
+        padding-block: 0.5rem;
+      }
+
+      > .quartz-nav__root {
+        margin: 0;
+        padding-top: 0.5rem;
+      }
+    }
+
+    &.quartz-nav--rail-right > .quartz-nav__panel {
+      inset: var(--quartz-nav-rail-top, var(--_rail-top, 0px)) 0 0 auto;
+      border-inline-end: 0;
+      border-inline-start: 1px solid var(--quartz-nav-border);
+    }
+
+    // Title and pin button share the top row; the title starts where the strip ends.
+    .quartz-nav__rail-head {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      min-height: var(--quartz-nav-rail-row-height);
+      padding: 0.25rem var(--quartz-nav-item-padding-x) 0 var(--quartz-nav-rail-width);
+
+      > .quartz-nav__title {
+        flex: 1;
+        min-width: 0;
+        margin: 0;
+      }
+    }
+
+    .quartz-nav__rail-pin {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-inline-start: auto;
+      padding: 0.3rem;
+      border: 0;
+      border-radius: var(--quartz-nav-radius);
+      background: none;
+      color: var(--quartz-nav-color-muted);
+      font: inherit;
+      cursor: pointer;
+      transition:
+        background-color var(--quartz-nav-transition),
+        color var(--quartz-nav-transition);
+
+      .quartz-nav__icon {
+        margin: 0;
+        color: currentColor;
+      }
+
+      .quartz-nav__icon--unpin {
+        display: none;
+      }
+
+      &:hover {
+        color: var(--quartz-nav-color-hover);
+        background-color: var(--quartz-nav-bg-hover);
+      }
+
+      &:focus-visible {
+        outline: 2px solid var(--quartz-nav-focus);
+        outline-offset: 1px;
+      }
+
+      &[aria-pressed="true"] {
+        color: var(--quartz-nav-color-active);
+
+        .quartz-nav__icon--pin {
+          display: none;
+        }
+
+        .quartz-nav__icon--unpin {
+          display: inline-flex;
+        }
+      }
+    }
+
+    &[data-rail-instant] > .quartz-nav__panel {
+      transition: none;
+    }
+
+    // Level-1 rows: the icon is centred in a column exactly as wide as the strip, the text
+    // starts where the strip ends.
+    > .quartz-nav__panel > [data-level="1"] > .quartz-nav__item > .quartz-nav__link,
+    > .quartz-nav__panel > [data-level="1"] > .quartz-nav__item > details > .quartz-nav__summary,
+    > .quartz-nav__panel > .quartz-nav__root > .quartz-nav__link {
+      align-items: center;
+      gap: 0;
+      min-height: var(--quartz-nav-rail-row-height);
+      padding-block: 0;
+      padding-inline: 0 var(--quartz-nav-item-padding-x);
+      border-radius: 0;
+
+      > .quartz-nav__icon,
+      > .quartz-nav__link > .quartz-nav__icon {
+        box-sizing: border-box;
+        width: var(--quartz-nav-rail-icon-size);
+        height: var(--quartz-nav-rail-icon-size);
+        margin-block: 0;
+        margin-inline: calc((var(--quartz-nav-rail-width) - var(--quartz-nav-rail-icon-size)) / 2);
+        font-size: calc(var(--quartz-nav-rail-icon-size) * 0.8);
+        line-height: 1;
+      }
+
+      > .quartz-nav__link {
+        align-items: center;
+        gap: 0;
+      }
+
+      .quartz-nav__chevron {
+        height: auto;
+      }
+    }
+
+    > .quartz-nav__panel > [data-level="1"] > .quartz-nav__item--split > .quartz-nav__link {
+      padding-right: calc(var(--quartz-nav-toggle-size) + 0.25rem);
+    }
+
+    > .quartz-nav__panel > [data-level="1"] > .quartz-nav__item > .quartz-nav__summary--toggle {
+      top: calc((var(--quartz-nav-rail-row-height) - var(--quartz-nav-row-height)) / 2);
+    }
+
+    .quartz-nav__item > .quartz-nav__link.active::after {
+      inset-inline-start: 0;
+    }
+
+    .quartz-nav__monogram {
+      border-radius: 50%;
+      background: var(--quartz-nav-bg-hover);
+      color: var(--quartz-nav-color-heading);
+      font-family: var(--quartz-nav-heading-font);
+      font-weight: 600;
+    }
+
+    .active > .quartz-nav__monogram,
+    .active-trail > .quartz-nav__monogram,
+    .quartz-nav__item.active-trail > details > .quartz-nav__summary .quartz-nav__monogram {
+      background: var(--quartz-nav-color-active);
+      color: var(--quartz-nav-bg-panel);
+    }
+
+    // Nested levels hang from the icon column.
+    .quartz-nav__list .quartz-nav__list {
+      margin-left: calc(var(--quartz-nav-rail-width) / 2);
+      padding-left: calc(var(--quartz-nav-rail-width) / 2 - var(--quartz-nav-item-padding-x));
+      border-left: 1px solid var(--quartz-nav-border);
+    }
+
+    .quartz-nav__list .quartz-nav__list:has(> .quartz-nav__item.active) {
+      border-left-color: var(--quartz-nav-color-active);
+    }
+
+    .quartz-nav__list .quartz-nav__list .quartz-nav__list {
+      margin-left: calc(var(--quartz-nav-item-padding-x) + 0.1rem);
+      padding-left: calc(var(--quartz-nav-indent) - var(--quartz-nav-item-padding-x));
+    }
+
+    // The strip shows level 1 only.
+    &[data-rail-state="part"],
+    &.quartz-nav--rail-icons:not([data-rail-state="open"]) {
+      > .quartz-nav__panel {
+        .quartz-nav__list .quartz-nav__list {
+          display: none;
+        }
+
+        > .quartz-nav__rail-head {
+          visibility: hidden;
+        }
+      }
+    }
+
+    // Closed with `rest: hidden`: off screen, and out of the tab order.
+    &.quartz-nav--rail-hidden:not([data-rail-state="part"], [data-rail-state="open"])
+      > .quartz-nav__panel {
+      visibility: hidden;
+      transform: translateX(-100%);
+    }
+
+    &.quartz-nav--rail-hidden.quartz-nav--rail-right:not(
+        [data-rail-state="part"],
+        [data-rail-state="open"]
+      )
+      > .quartz-nav__panel {
+      transform: translateX(100%);
+    }
+
+    &[data-rail-state="open"],
+    &:not([data-rail-state]):focus-within {
+      > .quartz-nav__panel {
+        visibility: visible;
+        width: var(--quartz-nav-rail-open-width);
+        transform: none;
+        scrollbar-width: thin;
+        box-shadow: var(--quartz-nav-shadow);
+      }
+    }
+
+    // Beside the page rather than over it, the menu needs no shadow.
+    &[data-rail-pushing] > .quartz-nav__panel {
+      box-shadow: none;
+    }
+  }
+
   // Folders that only collapse on mobile stay open on larger screens; the toggle is
   // removed from view, pointer and tab order there. Written as the negation of the mobile
   // query: `min-width` and `max-width` with the same value both match at exactly that width,
@@ -880,6 +1202,47 @@ html.quartz-nav-lock {
 
       .quartz-nav__folder[data-animate][open] > .quartz-nav__list {
         animation-name: quartz-nav-drop;
+      }
+    }
+
+    // No strip on a phone: the rail is closed or full, `rest: icons` included, and the page
+    // behind the full menu is dimmed.
+    &.quartz-nav--rail {
+      .quartz-nav__rail-backdrop {
+        display: block;
+        position: fixed;
+        inset: 0;
+        z-index: calc(var(--quartz-nav-rail-z) - 1);
+        background: var(--quartz-nav-backdrop);
+        visibility: hidden;
+        opacity: 0;
+        transition:
+          opacity var(--quartz-nav-transition),
+          visibility var(--quartz-nav-transition);
+      }
+
+      &[data-rail-state="open"] > .quartz-nav__rail-backdrop {
+        visibility: visible;
+        opacity: 1;
+      }
+
+      &.quartz-nav--rail-icons:not([data-rail-state="open"]) > .quartz-nav__panel {
+        visibility: hidden;
+        transform: translateX(-100%);
+      }
+
+      &.quartz-nav--rail-icons.quartz-nav--rail-right:not([data-rail-state="open"])
+        > .quartz-nav__panel {
+        transform: translateX(100%);
+      }
+
+      &.quartz-nav--mobile-select > .quartz-nav__rail-trigger {
+        display: none;
+      }
+
+      // Pinning means "keep it beside the page"; a phone has no room beside the page.
+      .quartz-nav__rail-pin {
+        display: none;
       }
     }
 

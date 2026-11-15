@@ -355,6 +355,399 @@ describe("client script", () => {
     expect(document.documentElement.classList.contains("quartz-nav-lock")).toBe(false);
   });
 
+  it("rail: hover slides in the strip, then the full menu; leaving closes it", async () => {
+    vi.useFakeTimers();
+    try {
+      mount(
+        `<header style="position: sticky"><nav data-quartz-nav="r" data-variant="rail" data-rail-rest="hidden" data-rail-expand="hover" data-bp-mobile="800px" class="quartz-nav quartz-nav--rail quartz-nav--rail-hidden quartz-nav--rail-left">
+          <button type="button" class="quartz-nav__rail-trigger" aria-expanded="false"></button>
+          <div class="quartz-nav__rail-backdrop"></div>
+          <div class="quartz-nav__panel" id="r-panel"><ul class="quartz-nav__list" data-level="1"><li><a href="./a" id="inside">a</a></li></ul></div></nav></header>`,
+      );
+      for (const fn of cleanups.splice(0)) fn();
+      document.dispatchEvent(new CustomEvent("nav", { detail: { url: "docs/index" } }) as never);
+      const navEl = document.querySelector<HTMLElement>("nav")!;
+      const trigger = navEl.querySelector<HTMLButtonElement>("button")!;
+      const panel = navEl.querySelector<HTMLElement>(".quartz-nav__panel")!;
+      expect(navEl.dataset.railState).toBe("closed");
+      expect(navEl.style.getPropertyValue("--_rail-top")).toBe("");
+
+      trigger.dispatchEvent(new MouseEvent("mouseenter"));
+      expect(navEl.dataset.railState).toBe("part");
+      expect(navEl.style.getPropertyValue("--_rail-top")).toBe("0px");
+      expect(trigger.getAttribute("aria-expanded")).toBe("false");
+      trigger.dispatchEvent(new MouseEvent("mouseleave"));
+      panel.dispatchEvent(new MouseEvent("mouseenter"));
+      vi.advanceTimersByTime(800);
+      expect(navEl.dataset.railState).toBe("open");
+      expect(trigger.getAttribute("aria-expanded")).toBe("true");
+      panel.dispatchEvent(new MouseEvent("mouseleave"));
+      vi.advanceTimersByTime(800);
+      expect(navEl.dataset.railState).toBe("closed");
+
+      // Opened by hover, it closes on leaving even after something was clicked or focused in it.
+      panel.dispatchEvent(new MouseEvent("mouseenter"));
+      panel.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      document.getElementById("inside")!.focus();
+      panel.dispatchEvent(new MouseEvent("mouseleave"));
+      vi.advanceTimersByTime(800);
+      expect(navEl.dataset.railState).toBe("closed");
+      // Opened by the button, it stays until a click outside.
+      trigger.click();
+      panel.dispatchEvent(new MouseEvent("mouseleave"));
+      vi.advanceTimersByTime(800);
+      expect(navEl.dataset.railState).toBe("open");
+      document.getElementById("outside")!.click();
+      expect(navEl.dataset.railState).toBe("closed");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("rail: the button toggles, Escape, the backdrop and prenav close, mobile locks scrolling", async () => {
+    mount(
+      `<nav data-quartz-nav="r" data-variant="rail" data-rail-rest="hidden" data-rail-expand="click" data-bp-mobile="800px" class="quartz-nav quartz-nav--rail quartz-nav--rail-hidden quartz-nav--rail-left">
+        <button type="button" class="quartz-nav__rail-trigger" aria-expanded="false"></button>
+        <div class="quartz-nav__rail-backdrop"></div>
+        <div class="quartz-nav__panel" id="r-panel"><ul class="quartz-nav__list" data-level="1"><li><a href="./a" id="inside">a</a></li></ul></div></nav>`,
+    );
+    await nav();
+    const navEl = document.querySelector<HTMLElement>("nav")!;
+    const trigger = navEl.querySelector<HTMLButtonElement>("button")!;
+    const lock = () => document.documentElement.classList.contains("quartz-nav-lock");
+    // `expand: click`: hovering does nothing.
+    trigger.dispatchEvent(new MouseEvent("mouseenter"));
+    expect(navEl.dataset.railState).toBe("closed");
+    trigger.click();
+    expect(navEl.dataset.railState).toBe("open");
+    expect(lock()).toBe(false);
+    trigger.click();
+    expect(navEl.dataset.railState).toBe("closed");
+
+    resize(true);
+    trigger.click();
+    expect(lock()).toBe(true);
+    document.getElementById("inside")!.focus();
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+    expect(navEl.dataset.railState).toBe("closed");
+    expect(lock()).toBe(false);
+    expect(document.activeElement).toBe(trigger);
+
+    trigger.click();
+    navEl.querySelector<HTMLElement>(".quartz-nav__rail-backdrop")!.click();
+    expect(navEl.dataset.railState).toBe("closed");
+    trigger.click();
+    document.dispatchEvent(new CustomEvent("prenav") as never);
+    expect(navEl.dataset.railState).toBe("closed");
+
+    // Keyboard focus entering the panel opens the full menu.
+    document.getElementById("inside")!.focus();
+    expect(navEl.dataset.railState).toBe("open");
+    for (const fn of cleanups.splice(0)) fn();
+    expect(lock()).toBe(false);
+  });
+
+  it("rail: a permanent strip pushes the page with `content: push`, except on mobile", async () => {
+    mount(
+      `<nav data-quartz-nav="r" data-variant="rail" data-rail-rest="icons" data-rail-expand="hover" data-rail-content="push" data-bp-mobile="800px" class="quartz-nav quartz-nav--rail quartz-nav--rail-icons quartz-nav--rail-right" style="--quartz-nav-rail-width: 4rem">
+        <button type="button" class="quartz-nav__rail-trigger" aria-expanded="false"></button>
+        <div class="quartz-nav__panel"><ul class="quartz-nav__list" data-level="1"><li><a href="./a" id="inside">a</a></li></ul></div></nav>`,
+    );
+    await nav();
+    const root = document.documentElement;
+    expect(root.classList.contains("quartz-nav-rail-right")).toBe(true);
+    expect(root.style.getPropertyValue("--quartz-nav-rail-offset-right")).toBe("4rem");
+    expect(root.classList.contains("quartz-nav-rail-push-right")).toBe(true);
+    resize(true);
+    expect(root.classList.contains("quartz-nav-rail-right")).toBe(false);
+    expect(root.style.getPropertyValue("--quartz-nav-rail-offset-right")).toBe("");
+    resize(false);
+    expect(root.classList.contains("quartz-nav-rail-right")).toBe(true);
+    for (const fn of cleanups.splice(0)) fn();
+    expect(root.classList.contains("quartz-nav-rail-right")).toBe(false);
+    expect(root.style.getPropertyValue("--quartz-nav-rail-offset-right")).toBe("");
+  });
+
+  it("rail: a pinned menu stays open, survives a page change and unpins with the menu button", async () => {
+    const html = `<nav data-quartz-nav="pin" data-variant="rail" data-rail-rest="hidden" data-rail-expand="click" data-bp-mobile="800px" class="quartz-nav quartz-nav--rail quartz-nav--rail-hidden quartz-nav--rail-left">
+        <button type="button" class="quartz-nav__rail-trigger" aria-expanded="false"></button>
+        <div class="quartz-nav__panel"><div class="quartz-nav__rail-head"><button type="button" class="quartz-nav__rail-pin" aria-pressed="false"></button></div>
+        <ul class="quartz-nav__list" data-level="1"><li><a href="./a" id="inside">a</a></li></ul></div></nav>`;
+    mount(html);
+    await nav();
+    let navEl = document.querySelector<HTMLElement>("nav")!;
+    const pin = navEl.querySelector<HTMLButtonElement>(".quartz-nav__rail-pin")!;
+    navEl.querySelector<HTMLButtonElement>(".quartz-nav__rail-trigger")!.click();
+    pin.click();
+    expect(pin.getAttribute("aria-pressed")).toBe("true");
+    expect(localStorage.getItem("quartz-nav:pin:rail-pinned")).toBe("true");
+    document.getElementById("outside")!.click();
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+    document.dispatchEvent(new CustomEvent("prenav") as never);
+    expect(navEl.dataset.railState).toBe("open");
+
+    // The next page restores it, without animation.
+    mount(html);
+    await nav();
+    navEl = document.querySelector<HTMLElement>("nav")!;
+    expect(navEl.dataset.railState).toBe("open");
+    expect(navEl.querySelector(".quartz-nav__rail-pin")!.getAttribute("aria-pressed")).toBe("true");
+    // Not on a phone.
+    resize(true);
+    expect(navEl.dataset.railState).toBe("closed");
+    resize(false);
+    expect(navEl.dataset.railState).toBe("open");
+
+    navEl.querySelector<HTMLButtonElement>(".quartz-nav__rail-trigger")!.click();
+    expect(navEl.dataset.railState).toBe("closed");
+    expect(localStorage.getItem("quartz-nav:pin:rail-pinned")).toBeNull();
+  });
+
+  it("rail: push moves the page however the menu was opened, unless hoverContent says otherwise", async () => {
+    const html = (hover: string) =>
+      `<nav data-quartz-nav="push" data-variant="rail" data-rail-rest="hidden" data-rail-expand="hover" data-rail-content="push" data-rail-hover-content="${hover}" data-bp-mobile="800px" class="quartz-nav quartz-nav--rail quartz-nav--rail-hidden quartz-nav--rail-left" style="--quartz-nav-rail-open-width: 18rem; --quartz-nav-rail-width: 4rem">
+        <button type="button" class="quartz-nav__rail-trigger" aria-expanded="false"></button>
+        <div class="quartz-nav__panel"><div class="quartz-nav__rail-head"><button type="button" class="quartz-nav__rail-pin" aria-pressed="false"></button></div><ul class="quartz-nav__list" data-level="1"><li><a href="./a" id="inside">a</a></li></ul></div></nav>`;
+    const root = document.documentElement;
+    const offset = () => root.style.getPropertyValue("--quartz-nav-rail-offset-left");
+
+    // `hoverContent: same`: the strip and a menu opened by hover push as well.
+    mount(html("same"));
+    await nav();
+    let navEl = document.querySelector<HTMLElement>("nav")!;
+    let panel = navEl.querySelector<HTMLElement>(".quartz-nav__panel")!;
+    expect(root.classList.contains("quartz-nav-rail-push-left")).toBe(true);
+    expect(offset()).toBe("0px");
+    navEl.querySelector("button")!.dispatchEvent(new MouseEvent("mouseenter"));
+    expect(offset()).toBe("4rem");
+    panel.dispatchEvent(new MouseEvent("mouseenter"));
+    expect(offset()).toBe("18rem");
+    expect(navEl.dataset.railPushing).toBe("");
+    document.getElementById("outside")!.click();
+    expect(offset()).toBe("0px");
+
+    // `hoverContent: overlay`: hover lays it over the page, a click or the pin pushes.
+    mount(html("overlay"));
+    await nav();
+    navEl = document.querySelector<HTMLElement>("nav")!;
+    panel = navEl.querySelector<HTMLElement>(".quartz-nav__panel")!;
+    panel.dispatchEvent(new MouseEvent("mouseenter"));
+    expect(navEl.dataset.railState).toBe("open");
+    expect(offset()).toBe("0px");
+    navEl.querySelector<HTMLButtonElement>(".quartz-nav__rail-pin")!.click();
+    expect(offset()).toBe("18rem");
+    navEl.querySelector<HTMLButtonElement>(".quartz-nav__rail-trigger")!.click();
+    expect(offset()).toBe("0px");
+    navEl.querySelector<HTMLButtonElement>(".quartz-nav__rail-trigger")!.click();
+    expect(offset()).toBe("18rem");
+    resize(true);
+    expect(root.classList.contains("quartz-nav-rail-push-left")).toBe(false);
+    expect(offset()).toBe("");
+    for (const fn of cleanups.splice(0)) fn();
+    expect(root.classList.contains("quartz-nav-rail-left")).toBe(false);
+  });
+
+  it("rail: a rail on each side keeps its own offset and push state", async () => {
+    mount(
+      `<nav data-quartz-nav="l" data-variant="rail" data-rail-rest="hidden" data-rail-expand="click" data-rail-content="push" data-bp-mobile="800px" class="quartz-nav quartz-nav--rail quartz-nav--rail-hidden quartz-nav--rail-left" style="--quartz-nav-rail-open-width: 18rem">
+        <button type="button" class="quartz-nav__rail-trigger" aria-expanded="false"></button>
+        <div class="quartz-nav__panel"><div class="quartz-nav__rail-head"><button type="button" class="quartz-nav__rail-pin" aria-pressed="false"></button></div><ul class="quartz-nav__list" data-level="1"><li><a href="./a">a</a></li></ul></div></nav>
+      <nav data-quartz-nav="r" data-variant="rail" data-rail-rest="icons" data-rail-expand="strip" data-rail-content="overlay" data-bp-mobile="800px" class="quartz-nav quartz-nav--rail quartz-nav--rail-icons quartz-nav--rail-right" style="--quartz-nav-rail-width: 4rem">
+        <button type="button" class="quartz-nav__rail-trigger" aria-expanded="false"></button>
+        <div class="quartz-nav__panel"><div class="quartz-nav__rail-head"><button type="button" class="quartz-nav__rail-pin" aria-pressed="false"></button></div><ul class="quartz-nav__list" data-level="1"><li><a href="./b">b</a></li></ul></div></nav>`,
+    );
+    await nav();
+    const root = document.documentElement;
+    const [left, right] = Array.from(document.querySelectorAll<HTMLElement>("nav"));
+    left!.querySelector<HTMLButtonElement>(".quartz-nav__rail-trigger")!.click();
+    left!.querySelector<HTMLButtonElement>(".quartz-nav__rail-pin")!.click();
+    const pushedLeft = () => [
+      root.classList.contains("quartz-nav-rail-push-left"),
+      root.style.getPropertyValue("--quartz-nav-rail-offset-left"),
+    ];
+    expect(pushedLeft()).toEqual([true, "18rem"]);
+    // Opening and pinning the right rail must not touch the left one.
+    right!.querySelector(".quartz-nav__panel")!.dispatchEvent(new MouseEvent("mouseenter"));
+    right!.querySelector<HTMLButtonElement>(".quartz-nav__rail-pin")!.click();
+    expect(right!.dataset.railState).toBe("open");
+    expect(pushedLeft()).toEqual([true, "18rem"]);
+    // The right one overlays: nothing moves on its side.
+    expect(root.style.getPropertyValue("--quartz-nav-rail-offset-right")).toBe("");
+    expect(root.classList.contains("quartz-nav-rail-push-right")).toBe(false);
+    right!.querySelector<HTMLButtonElement>(".quartz-nav__rail-trigger")!.click();
+    expect(pushedLeft()).toEqual([true, "18rem"]);
+    for (const fn of cleanups.splice(0)) fn();
+  });
+
+  it("rail: `pinContent: push` lets an overlaying menu sit beside the page once pinned", async () => {
+    mount(
+      `<nav data-quartz-nav="pc" data-variant="rail" data-rail-rest="hidden" data-rail-expand="click" data-rail-content="overlay" data-rail-pin-content="push" data-bp-mobile="800px" class="quartz-nav quartz-nav--rail quartz-nav--rail-hidden quartz-nav--rail-left" style="--quartz-nav-rail-open-width: 18rem">
+        <button type="button" class="quartz-nav__rail-trigger" aria-expanded="false"></button>
+        <div class="quartz-nav__panel"><div class="quartz-nav__rail-head"><button type="button" class="quartz-nav__rail-pin" aria-pressed="false"></button></div><ul class="quartz-nav__list" data-level="1"><li><a href="./a">a</a></li></ul></div></nav>`,
+    );
+    await nav();
+    const root = document.documentElement;
+    const navEl = document.querySelector<HTMLElement>("nav")!;
+    const offset = () => root.style.getPropertyValue("--quartz-nav-rail-offset-left");
+    expect(root.classList.contains("quartz-nav-rail-push-left")).toBe(true);
+    navEl.querySelector<HTMLButtonElement>(".quartz-nav__rail-trigger")!.click();
+    expect(offset()).toBe("0px");
+    navEl.querySelector<HTMLButtonElement>(".quartz-nav__rail-pin")!.click();
+    expect(offset()).toBe("18rem");
+    navEl.querySelector<HTMLButtonElement>(".quartz-nav__rail-pin")!.click();
+    expect(offset()).toBe("0px");
+    expect(navEl.dataset.railState).toBe("open");
+    for (const fn of cleanups.splice(0)) fn();
+  });
+
+  it("rail: `onNavigate: keep` carries the open menu to the next page until the pointer leaves", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
+    try {
+      const html = (keep: string) =>
+        `<nav data-quartz-nav="kn" data-variant="rail" data-rail-rest="hidden" data-rail-expand="click" data-rail-on-navigate="${keep}" data-bp-mobile="800px" class="quartz-nav quartz-nav--rail quartz-nav--rail-hidden quartz-nav--rail-left">
+          <button type="button" class="quartz-nav__rail-trigger" aria-expanded="false"></button>
+          <div class="quartz-nav__panel"><ul class="quartz-nav__list" data-level="1"><li><a href="#x" id="link">a</a></li></ul></div></nav>`;
+      const go = () => {
+        for (const fn of cleanups.splice(0)) fn();
+        document.dispatchEvent(new CustomEvent("nav", { detail: { url: "docs/index" } }) as never);
+      };
+      mount(html("keep"));
+      go();
+      let navEl = document.querySelector<HTMLElement>("nav")!;
+      navEl.querySelector<HTMLButtonElement>(".quartz-nav__rail-trigger")!.click();
+      document.getElementById("link")!.click();
+      document.dispatchEvent(new CustomEvent("prenav") as never);
+      expect(navEl.dataset.railState).toBe("open");
+      // The next page shows it open; moving the pointer off it closes it.
+      mount(html("keep"));
+      go();
+      navEl = document.querySelector<HTMLElement>("nav")!;
+      expect(navEl.dataset.railState).toBe("open");
+      document
+        .getElementById("link")!
+        .dispatchEvent(new MouseEvent("mousemove", { bubbles: true }));
+      vi.advanceTimersByTime(800);
+      expect(navEl.dataset.railState).toBe("open");
+      document
+        .getElementById("outside")!
+        .dispatchEvent(new MouseEvent("mousemove", { bubbles: true }));
+      vi.advanceTimersByTime(800);
+      expect(navEl.dataset.railState).toBe("closed");
+
+      // `close` (default): a followed link closes it, and nothing is carried over.
+      mount(html("close"));
+      go();
+      navEl = document.querySelector<HTMLElement>("nav")!;
+      navEl.querySelector<HTMLButtonElement>(".quartz-nav__rail-trigger")!.click();
+      document.getElementById("link")!.click();
+      document.dispatchEvent(new CustomEvent("prenav") as never);
+      expect(navEl.dataset.railState).toBe("closed");
+      mount(html("keep"));
+      go();
+      expect(document.querySelector<HTMLElement>("nav")!.dataset.railState).toBe("closed");
+      for (const fn of cleanups.splice(0)) fn();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("rail: pushes while the page stays above the mobile breakpoint, overlays below it", async () => {
+    const proto = HTMLElement.prototype;
+    const rect = proto.getBoundingClientRect;
+    // The probe the script measures the panel width with reports 320px.
+    proto.getBoundingClientRect = function (this: HTMLElement) {
+      const width = this.style.width.includes("--quartz-nav-rail-open-width") ? 320 : 0;
+      return { width, height: 0, top: 0, left: 0, right: width, bottom: 0, x: 0, y: 0 } as DOMRect;
+    };
+    const innerWidth = window.innerWidth;
+    try {
+      mount(
+        `<nav data-quartz-nav="bp" data-variant="rail" data-rail-rest="hidden" data-rail-expand="click" data-rail-content="push" data-bp-mobile="900px" data-bp-desktop="1200px" class="quartz-nav quartz-nav--rail quartz-nav--rail-hidden quartz-nav--rail-left" style="--quartz-nav-rail-open-width: 20rem">
+          <button type="button" class="quartz-nav__rail-trigger" aria-expanded="false"></button>
+          <div class="quartz-nav__panel"><ul class="quartz-nav__list" data-level="1"><li><a href="./a">a</a></li></ul></div></nav>`,
+      );
+      await nav();
+      const root = document.documentElement;
+      const navEl = document.querySelector<HTMLElement>("nav")!;
+      const offset = () => root.style.getPropertyValue("--quartz-nav-rail-offset-left");
+      Object.defineProperty(window, "innerWidth", { value: 1700, configurable: true });
+      navEl.querySelector<HTMLButtonElement>("button")!.click();
+      expect(offset()).toBe("20rem");
+      // A desktop page may get narrower than the desktop breakpoint: 1328 - 320 = 1008.
+      Object.defineProperty(window, "innerWidth", { value: 1328, configurable: true });
+      window.dispatchEvent(new Event("resize"));
+      expect(offset()).toBe("20rem");
+      // But not narrower than the mobile one: 1100 - 320 = 780 < 900, the menu overlays.
+      Object.defineProperty(window, "innerWidth", { value: 1100, configurable: true });
+      window.dispatchEvent(new Event("resize"));
+      expect(offset()).toBe("0px");
+      expect(navEl.dataset.railPushing).toBeUndefined();
+      // Widening the window brings the push back.
+      Object.defineProperty(window, "innerWidth", { value: 1240, configurable: true });
+      window.dispatchEvent(new Event("resize"));
+      expect(offset()).toBe("20rem");
+      for (const fn of cleanups.splice(0)) fn();
+    } finally {
+      proto.getBoundingClientRect = rect;
+      Object.defineProperty(window, "innerWidth", { value: innerWidth, configurable: true });
+    }
+  });
+
+  it("rail: two pushing rails together keep the page in its layout", async () => {
+    const proto = HTMLElement.prototype;
+    const rect = proto.getBoundingClientRect;
+    proto.getBoundingClientRect = function (this: HTMLElement) {
+      const width = this.style.width.includes("--quartz-nav-rail-open-width") ? 320 : 0;
+      return { width, height: 0, top: 0, left: 0, right: width, bottom: 0, x: 0, y: 0 } as DOMRect;
+    };
+    const innerWidth = window.innerWidth;
+    Object.defineProperty(window, "innerWidth", { value: 1500, configurable: true });
+    const rail = (id: string, side: string) =>
+      `<nav data-quartz-nav="${id}" data-variant="rail" data-rail-rest="hidden" data-rail-expand="click" data-rail-content="push" data-bp-mobile="900px" data-bp-desktop="1200px" class="quartz-nav quartz-nav--rail quartz-nav--rail-hidden quartz-nav--rail-${side}" style="--quartz-nav-rail-open-width: 20rem">
+        <button type="button" class="quartz-nav__rail-trigger" aria-expanded="false"></button>
+        <div class="quartz-nav__panel"><div class="quartz-nav__rail-head"><button type="button" class="quartz-nav__rail-pin" aria-pressed="false"></button></div><ul class="quartz-nav__list" data-level="1"><li><a href="./a">a</a></li></ul></div></nav>`;
+    try {
+      mount(rail("two-l", "left") + rail("two-r", "right"));
+      await nav();
+      const root = document.documentElement;
+      const [left, right] = Array.from(document.querySelectorAll<HTMLElement>("nav"));
+      const offsets = () => [
+        root.style.getPropertyValue("--quartz-nav-rail-offset-left"),
+        root.style.getPropertyValue("--quartz-nav-rail-offset-right"),
+      ];
+      // Both pinned, so that a click on one is not a click outside the other.
+      left!.querySelector<HTMLButtonElement>(".quartz-nav__rail-pin")!.click();
+      expect(offsets()).toEqual(["20rem", "0px"]);
+      // 1500 - 320 - 320 = 860 would be below the mobile breakpoint: the right one overlays.
+      right!.querySelector<HTMLButtonElement>(".quartz-nav__rail-pin")!.click();
+      expect(right!.dataset.railState).toBe("open");
+      expect(offsets()).toEqual(["20rem", "0px"]);
+      // Once the left one closes, the right one has room and pushes.
+      left!.querySelector<HTMLButtonElement>(".quartz-nav__rail-trigger")!.click();
+      expect(left!.dataset.railState).toBe("closed");
+      expect(offsets()).toEqual(["0px", "20rem"]);
+      for (const fn of cleanups.splice(0)) fn();
+      expect(root.dataset.quartzNavRailPushRight).toBeUndefined();
+    } finally {
+      proto.getBoundingClientRect = rect;
+      Object.defineProperty(window, "innerWidth", { value: innerWidth, configurable: true });
+    }
+  });
+
+  it("rail: `expand: strip` ignores hovering the button but expands the strip", async () => {
+    mount(
+      `<nav data-quartz-nav="s" data-variant="rail" data-rail-rest="icons" data-rail-expand="strip" data-bp-mobile="800px" class="quartz-nav quartz-nav--rail quartz-nav--rail-icons quartz-nav--rail-left">
+        <button type="button" class="quartz-nav__rail-trigger" aria-expanded="false"></button>
+        <div class="quartz-nav__panel"><ul class="quartz-nav__list" data-level="1"><li><a href="./a">a</a></li></ul></div></nav>`,
+    );
+    await nav();
+    const navEl = document.querySelector<HTMLElement>("nav")!;
+    navEl.querySelector("button")!.dispatchEvent(new MouseEvent("mouseenter"));
+    expect(navEl.dataset.railState).toBe("closed");
+    navEl.querySelector(".quartz-nav__panel")!.dispatchEvent(new MouseEvent("mouseenter"));
+    expect(navEl.dataset.railState).toBe("open");
+  });
+
   it("navigates when a select option is chosen", async () => {
     const spa = vi.fn(() => Promise.resolve());
     (window as { spaNavigate?: unknown }).spaNavigate = spa;

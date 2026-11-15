@@ -4,6 +4,7 @@ const deDE: Translation = {
   nav: {
     label: "Hauptnavigation",
     toggleMenu: "Menü umschalten",
+    pinMenu: "Menü anheften",
     home: "Start",
     overview: "Übersicht",
     previous: "Zurück",

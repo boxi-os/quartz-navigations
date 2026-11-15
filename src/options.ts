@@ -10,6 +10,12 @@ import type {
   NavIndexEntry,
   NavMobile,
   NavPagerOrder,
+  NavRailContent,
+  NavRailExpand,
+  NavRailHoverContent,
+  NavRailOnNavigate,
+  NavRailRest,
+  NavRailSide,
   NavScope,
   NavSort,
   NavSortDirection,
@@ -31,10 +37,17 @@ const VARIANTS: readonly NavVariant[] = [
   "columns",
   "select",
   "pager",
+  "rail",
 ];
 const MOBILE: readonly NavMobile[] = ["same", "accordion", "offcanvas", "select", "hidden"];
 const ALIGNS: readonly NavAlign[] = ["left", "center", "right", "full"];
 const FLYOUT_SIDES: readonly NavFlyoutSide[] = ["auto", "right", "left"];
+const RAIL_RESTS: readonly NavRailRest[] = ["hidden", "icons"];
+const RAIL_SIDES: readonly NavRailSide[] = ["left", "right"];
+const RAIL_EXPANDS: readonly NavRailExpand[] = ["hover", "strip", "click"];
+const RAIL_CONTENTS: readonly NavRailContent[] = ["overlay", "push"];
+const RAIL_HOVER_CONTENTS: readonly NavRailHoverContent[] = ["same", "overlay", "push"];
+const RAIL_ON_NAVIGATE: readonly NavRailOnNavigate[] = ["close", "keep"];
 const SCOPES: readonly NavScope[] = ["root", "section", "parent", "current"];
 const SORTS: readonly NavSort[] = ["manual", "alphabetical", "date"];
 const DIRECTIONS: readonly NavSortDirection[] = ["asc", "desc"];
@@ -74,6 +87,8 @@ export const defaultOptions = {
     chevron: "chevron-down",
     menu: "menu",
     close: "x",
+    pin: "pin",
+    unpin: "pin-off",
     previous: "chevron-left",
     next: "chevron-right",
   },
@@ -109,6 +124,16 @@ export const defaultOptions = {
   breakpoints: {},
   tabs: { secondary: true },
   flyout: { side: "auto" },
+  rail: {
+    rest: "hidden",
+    side: "left",
+    expand: "hover",
+    content: "overlay",
+    hoverContent: "same",
+    pinContent: "same",
+    onNavigate: "close",
+    pin: true,
+  },
   select: { button: false },
   columns: { max: 4 },
   pager: { labels: true, order: "tree" },
@@ -231,6 +256,7 @@ export function resolveOptions(userOpts?: NavigationOptions): ResolvedOptions {
   const bp = (user.breakpoints ?? {}) as Record<string, unknown>;
   const tabs = (user.tabs ?? {}) as Record<string, unknown>;
   const flyout = (user.flyout ?? {}) as Record<string, unknown>;
+  const rail = (user.rail ?? {}) as Record<string, unknown>;
   const select = (user.select ?? {}) as Record<string, unknown>;
   const columns = (user.columns ?? {}) as Record<string, unknown>;
   const pager = (user.pager ?? {}) as Record<string, unknown>;
@@ -253,10 +279,22 @@ export function resolveOptions(userOpts?: NavigationOptions): ResolvedOptions {
     );
   }
 
+  const resolvedVariant = pickEnum("variant", variant, VARIANTS, defaultOptions.variant);
+  let mobile = pickEnum("mobile", user.mobile, MOBILE, defaultOptions.mobile);
+  // The rail is a sliding panel of its own on every screen; a second drawer or an inline
+  // accordion below the breakpoint would compete with it.
+  if (resolvedVariant === "rail" && (mobile === "accordion" || mobile === "offcanvas")) {
+    warnOnce(
+      `rail:mobile:${mobile}`,
+      `\`mobile: ${mobile}\` does not apply to \`variant: rail\`, which slides in on small screens by itself; using \`same\`.`,
+    );
+    mobile = "same";
+  }
+
   return {
     language: pickLanguage(user.language),
-    variant: pickEnum("variant", variant, VARIANTS, defaultOptions.variant),
-    mobile: pickEnum("mobile", user.mobile, MOBILE, defaultOptions.mobile),
+    variant: resolvedVariant,
+    mobile,
     align: pickEnum("align", user.align, ALIGNS, defaultOptions.align),
     className: pickString(user.className, ""),
     id: pickString(user.id, "").replace(/[^A-Za-z0-9_-]/g, "-"),
@@ -277,6 +315,8 @@ export function resolveOptions(userOpts?: NavigationOptions): ResolvedOptions {
       chevron: pickString(iconNames.chevron, "") || defaultOptions.iconNames.chevron,
       menu: pickString(iconNames.menu, "") || defaultOptions.iconNames.menu,
       close: pickString(iconNames.close, "") || defaultOptions.iconNames.close,
+      pin: pickString(iconNames.pin, "") || defaultOptions.iconNames.pin,
+      unpin: pickString(iconNames.unpin, "") || defaultOptions.iconNames.unpin,
       previous: pickString(iconNames.previous, "") || defaultOptions.iconNames.previous,
       next: pickString(iconNames.next, "") || defaultOptions.iconNames.next,
     },
@@ -346,6 +386,31 @@ export function resolveOptions(userOpts?: NavigationOptions): ResolvedOptions {
     tabs: { secondary: pickBoolean(tabs.secondary, defaultOptions.tabs.secondary) },
     flyout: {
       side: pickEnum("flyout.side", flyout.side, FLYOUT_SIDES, defaultOptions.flyout.side),
+    },
+    rail: {
+      rest: pickEnum("rail.rest", rail.rest, RAIL_RESTS, defaultOptions.rail.rest),
+      side: pickEnum("rail.side", rail.side, RAIL_SIDES, defaultOptions.rail.side),
+      expand: pickEnum("rail.expand", rail.expand, RAIL_EXPANDS, defaultOptions.rail.expand),
+      content: pickEnum("rail.content", rail.content, RAIL_CONTENTS, defaultOptions.rail.content),
+      hoverContent: pickEnum(
+        "rail.hoverContent",
+        rail.hoverContent,
+        RAIL_HOVER_CONTENTS,
+        defaultOptions.rail.hoverContent,
+      ),
+      pinContent: pickEnum(
+        "rail.pinContent",
+        rail.pinContent,
+        RAIL_HOVER_CONTENTS,
+        defaultOptions.rail.pinContent,
+      ),
+      onNavigate: pickEnum(
+        "rail.onNavigate",
+        rail.onNavigate,
+        RAIL_ON_NAVIGATE,
+        defaultOptions.rail.onNavigate,
+      ),
+      pin: pickBoolean(rail.pin, defaultOptions.rail.pin),
     },
     select: { button: pickBoolean(select.button, defaultOptions.select.button) },
     columns: { max: pickInt("columns.max", columns.max, defaultOptions.columns.max, 1) },

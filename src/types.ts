@@ -18,7 +18,8 @@ export type NavVariant =
   | "mega"
   | "columns"
   | "select"
-  | "pager";
+  | "pager"
+  | "rail";
 export type NavMobile = "same" | "accordion" | "offcanvas" | "select" | "hidden";
 export type NavScope = "root" | "section" | "parent" | "current";
 export type NavSort = "manual" | "alphabetical" | "date";
@@ -37,6 +38,21 @@ export type NavIcons = "none" | "type" | "custom" | "both";
 export type NavAlign = "left" | "center" | "right" | "full";
 /** Side the flyout panels open to; `auto` picks it from the navigation's position on the page. */
 export type NavFlyoutSide = "auto" | "right" | "left";
+/** What the `rail` variant shows at rest: nothing but its button, or a strip of level-1 icons. */
+export type NavRailRest = "hidden" | "icons";
+/** Screen edge the `rail` panel sits at. */
+export type NavRailSide = "left" | "right";
+/**
+ * How the `rail` opens by pointer: `hover` peeks the strip from the button and expands it to the
+ * full menu, `strip` only expands the strip on hover, `click` never reacts to hover.
+ */
+export type NavRailExpand = "hover" | "strip" | "click";
+/** Whether the open `rail` menu lies over the page or pushes it aside. */
+export type NavRailContent = "overlay" | "push";
+/** `rail.content` for one way of opening (hover, pin); `same` follows `rail.content`. */
+export type NavRailHoverContent = "same" | "overlay" | "push";
+/** What a link followed from the open `rail` menu does to it. */
+export type NavRailOnNavigate = "close" | "keep";
 
 export interface NavigationFrontmatterKeys {
   /** Numeric sort key of a page or folder index. Defaults to `navOrder`. */
@@ -68,6 +84,10 @@ export interface NavigationIconNames {
   menu?: string;
   /** Off-canvas close button. Defaults to `x`. */
   close?: string;
+  /** Rail button that pins the open menu. Defaults to `pin`. */
+  pin?: string;
+  /** The same button while the menu is pinned. Defaults to `pin-off`. */
+  unpin?: string;
   /** Pager "Previous". Defaults to `chevron-left`. */
   previous?: string;
   /** Pager "Next". Defaults to `chevron-right`. */
@@ -75,9 +95,9 @@ export interface NavigationIconNames {
 }
 
 export interface NavigationBreakpoints {
-  /** Mobile breakpoint, e.g. `800px`. Defaults to the value in `quartz/styles/variables.scss`. */
+  /** Mobile breakpoint, e.g. `800px`. Defaults to the site's value (see `breakpoints`). */
   mobile?: string;
-  /** Desktop breakpoint, e.g. `1200px`. Defaults to the value in `quartz/styles/variables.scss`. */
+  /** Desktop breakpoint, e.g. `1200px`. Defaults to the site's value (see `breakpoints`). */
   desktop?: string;
 }
 
@@ -177,7 +197,10 @@ export interface NavigationOptions {
   persistState?: boolean;
   /** How dropdown, mega and flyout panels open: on click or on hover and focus. Defaults to `click`. */
   trigger?: NavTrigger;
-  /** Override the breakpoints read from `quartz/styles/variables.scss`. */
+  /**
+   * Override the breakpoints read from the site: QuartzControl's frame breakpoints
+   * (`.quartz-gui/layout-breakpoints.json`) where present, else `quartz/styles/variables.scss`.
+   */
   breakpoints?: NavigationBreakpoints;
   /** Options of the `tabs` variant. */
   tabs?: {
@@ -191,6 +214,51 @@ export interface NavigationOptions {
      * the right half of the viewport, decided by the client script; `right` / `left` fix it.
      */
     side?: NavFlyoutSide;
+  };
+  /** Options of the `rail` variant. */
+  rail?: {
+    /**
+     * At rest, `hidden` shows only the menu button; hovering it slides in a strip of level-1
+     * icons. `icons` keeps the strip on screen, over the page or, with `content: push`, beside
+     * it. Defaults to `hidden`.
+     */
+    rest?: NavRailRest;
+    /** Screen edge of the panel. Defaults to `left`. */
+    side?: NavRailSide;
+    /**
+     * `hover` opens the strip when the pointer rests on the button and the full menu when it
+     * enters the strip; `strip` only expands the strip on hover (the button needs a click);
+     * `click` opens only on click. Touch screens always use click. Defaults to `hover`.
+     */
+    expand?: NavRailExpand;
+    /**
+     * `overlay` lays the menu over the page; `push` moves the page aside by the visible width
+     * of the panel (padding on `<body>`): the full menu, the strip with `rest: icons`. Defaults
+     * to `overlay`.
+     */
+    content?: NavRailContent;
+    /**
+     * The same for the strip slid in from the button and a menu opened by hover, e.g. `overlay`
+     * so that the page does not shift under a passing pointer. `same` follows `content`; a
+     * pinned menu follows `pinContent`. Defaults to `same`.
+     */
+    hoverContent?: NavRailHoverContent;
+    /**
+     * The same for a pinned menu, e.g. `push` with `content: overlay`: the menu lies over the
+     * page until it is pinned, then sits beside it. `same` follows `content`. Defaults to `same`.
+     */
+    pinContent?: NavRailHoverContent;
+    /**
+     * `close`: following a link in the open menu closes it. `keep`: the menu stays open on the
+     * next page and closes once the pointer leaves it (wide screens only). Defaults to `close`.
+     */
+    onNavigate?: NavRailOnNavigate;
+    /**
+     * Show a pin button in the open menu. A pinned menu stays open on clicks outside, Escape
+     * and page changes, and is restored on every page until it is unpinned or closed with the
+     * menu button (remembered in `localStorage`; not on small screens). Defaults to `true`.
+     */
+    pin?: boolean;
   };
   /** Options of the `select` variant and of `mobile: select`. */
   select?: {
@@ -259,6 +327,16 @@ export interface ResolvedOptions {
   breakpoints: NavigationBreakpoints;
   tabs: { secondary: boolean };
   flyout: { side: NavFlyoutSide };
+  rail: {
+    rest: NavRailRest;
+    side: NavRailSide;
+    expand: NavRailExpand;
+    content: NavRailContent;
+    hoverContent: NavRailHoverContent;
+    pinContent: NavRailHoverContent;
+    onNavigate: NavRailOnNavigate;
+    pin: boolean;
+  };
   select: { button: boolean };
   columns: { max: number };
   pager: { labels: boolean; order: NavPagerOrder };

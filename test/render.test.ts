@@ -2,6 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { QuartzComponentProps } from "@quartz-community/types";
 import Navigation from "../src/components/Navigation";
+import { monogramOf } from "../src/components/render";
 import type { NavigationOptions } from "../src/types";
 import { resolveOptions } from "../src/options";
 import { resetWarnings } from "../src/util/warn";
@@ -260,6 +261,89 @@ describe("Navigation component", () => {
     expect(findAll(linkMode, "span", "quartz-nav__chevron").length).toBe(5);
     const custom = render({ variant: "accordion", iconNames: { chevron: "plus" } }, "index")!;
     expect(classes(find(custom, "svg", "quartz-nav__chevron-icon"))).toContain("lucide-plus");
+  });
+
+  it("rail: a menu button, an accordion panel and a glyph on every level-1 row", () => {
+    const nav = render({ variant: "rail", title: "Contents", id: "rail" }, "docs/guides/alpha")!;
+    expect(classes(nav)).toEqual([
+      "quartz-nav",
+      "quartz-nav--rail",
+      "quartz-nav--mobile-same",
+      "quartz-nav--rail-hidden",
+      "quartz-nav--rail-left",
+    ]);
+    expect(nav.props["data-rail-rest"]).toBe("hidden");
+    expect(nav.props["data-rail-expand"]).toBe("hover");
+    expect(nav.props["data-rail-state"]).toBeUndefined();
+    const trigger = find(nav, "button", "quartz-nav__rail-trigger");
+    expect(trigger.props["aria-controls"]).toBe("rail-panel");
+    expect(trigger.props["aria-expanded"]).toBe("false");
+    expect(trigger.props["aria-label"]).toBe("Toggle menu");
+    expect(classes(find(trigger, "svg"))).toContain("lucide-menu");
+    find(nav, "div", "quartz-nav__rail-backdrop");
+    // The title belongs to the panel head, beside the pin button, not beside the menu button.
+    const panel = find(nav, "div", "quartz-nav__panel");
+    const head = find(panel, "div", "quartz-nav__rail-head");
+    expect(text(find(head, "h3", "quartz-nav__title"))).toBe("Contents");
+    const pin = find(head, "button", "quartz-nav__rail-pin");
+    expect(pin.props["aria-pressed"]).toBe("false");
+    expect(pin.props["aria-label"]).toBe("Pin menu");
+    expect(findAll(pin, "svg").map((svg) => classes(svg)[1])).toEqual([
+      "lucide-pin",
+      "lucide-pin-off",
+    ]);
+    expect(nav.props["data-rail-content"]).toBe("overlay");
+    const noPin = render({ variant: "rail", rail: { pin: false } }, "index")!;
+    expect(findAll(noPin, "div", "quartz-nav__rail-head")).toEqual([]);
+    expect((nav.props.children as unknown[]).flat().some((c) => (c as VNode)?.type === "h3")).toBe(
+      false,
+    );
+    // Accordion behaviour: every folder collapses, the active path is open.
+    expect(findAll(nav, "details").map((d) => [d.props["data-folder"], d.props.open])).toEqual([
+      ["blog/index", false],
+      ["docs/index", true],
+      ["docs/guides/index", true],
+      ["orte/index", false],
+      ["private/index", false],
+    ]);
+    // Level 1: a monogram where no custom icon is set; deeper levels keep the type glyphs.
+    const level1 = findAll(nav, "ul").find((u) => u.props["data-level"] === "1")!;
+    const monograms = findAll(level1, "span", "quartz-nav__monogram");
+    expect(monograms.map(text)).toEqual(["B", "D", "O", "P"]);
+    expect(monograms.every((m) => m.props["aria-hidden"] === "true")).toBe(true);
+    const level2 = findAll(nav, "ul").find((u) => u.props["data-level"] === "2")!;
+    expect(findAll(level2, "span", "quartz-nav__monogram")).toEqual([]);
+    expect(findAll(level2, "svg", "quartz-nav__icon--file").length).toBeGreaterThan(0);
+  });
+
+  it("rail: monograms take the first letter or digit, upper-cased", () => {
+    expect(monogramOf("élan")).toBe("É");
+    expect(monogramOf("  ¿Qué pasa?")).toBe("Q");
+    expect(monogramOf("02 Setup")).toBe("0");
+    expect(monogramOf("🧩")).toBe("🧩");
+    expect(monogramOf("")).toBe("");
+  });
+
+  it("rail: custom icons win over the monogram, the home entry gets its glyph", () => {
+    const nav = render(
+      {
+        variant: "rail",
+        nodeIcons: { docs: "lucide:book-open", blog: "📝" },
+        showHome: true,
+        rail: { rest: "icons", side: "right", expand: "click" },
+      },
+      "index",
+    )!;
+    expect(classes(nav)).toContain("quartz-nav--rail-icons");
+    expect(classes(nav)).toContain("quartz-nav--rail-right");
+    expect(nav.props["data-rail-expand"]).toBe("click");
+    expect(findAll(nav, "span", "quartz-nav__monogram").map(text)).toEqual(["O", "P"]);
+    expect(classes(find(nav, "svg", "lucide-book-open"))).toContain("quartz-nav__icon");
+    const home = find(nav, "li", "quartz-nav__item--home");
+    expect(classes(find(home, "svg"))).toContain("quartz-nav__icon--home");
+    // `icons: none` hides custom icons, but the strip still needs something to show.
+    const bare = render({ variant: "rail", icons: "none", nodeIcons: { docs: "🧩" } }, "index")!;
+    expect(findAll(bare, "span", "quartz-nav__monogram").map(text)).toEqual(["B", "D", "O", "P"]);
   });
 
   it("dropdown and mega: only the first level collapses and never starts open", () => {

@@ -11,7 +11,7 @@ component.
 2. **Initialization**: every `quartz.config.yaml` entry with a `layout` block calls the
    constructor with its raw `options`. The constructor runs `resolveOptions()`, derives a stable
    instance id (explicit `id` or a hash of the options), reads the site's breakpoints from
-   `quartz/styles/variables.scss` and replaces the placeholders in the compiled stylesheet.
+   `.quartz-gui/layout-breakpoints.json` (QuartzControl frames) or `quartz/styles/variables.scss` and replaces the placeholders in the compiled stylesheet.
    Quartz caches instances per options, so identical entries share one instance.
 3. **Resource collection** (`ComponentResources` emitter, before any page renders): the
    component's `css` and `afterDOMLoaded` strings are collected. All instances produce the same

@@ -53,6 +53,8 @@ describe("resolveOptions", () => {
       chevron: "chevron-right",
       menu: "menu",
       close: "x",
+      pin: "pin",
+      unpin: "pin-off",
       previous: "chevron-left",
       next: "chevron-right",
     });
@@ -96,6 +98,51 @@ describe("resolveOptions", () => {
       hide: "navHide",
       icon: "navIcon",
     });
+  });
+
+  it("resolves the rail options and keeps a second drawer away from the rail", () => {
+    expect(resolveOptions().rail).toEqual({
+      rest: "hidden",
+      side: "left",
+      expand: "hover",
+      content: "overlay",
+      hoverContent: "same",
+      pinContent: "same",
+      onNavigate: "close",
+      pin: true,
+    });
+    const opts = resolveOptions({
+      variant: "rail",
+      rail: {
+        rest: "icons",
+        side: "right",
+        expand: "strip",
+        content: "push",
+        hoverContent: "overlay",
+        pinContent: "push",
+        onNavigate: "keep",
+        pin: false,
+      },
+    });
+    expect(opts.rail).toEqual({
+      rest: "icons",
+      side: "right",
+      expand: "strip",
+      content: "push",
+      hoverContent: "overlay",
+      pinContent: "push",
+      onNavigate: "keep",
+      pin: false,
+    });
+    expect(warn).not.toHaveBeenCalled();
+    expect(resolveOptions({ rail: { rest: "strip" as never } }).rail.rest).toBe("hidden");
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(resolveOptions({ variant: "rail", mobile: "offcanvas" }).mobile).toBe("same");
+    expect(resolveOptions({ variant: "rail", mobile: "accordion" }).mobile).toBe("same");
+    expect(warn).toHaveBeenCalledTimes(3);
+    expect(resolveOptions({ variant: "rail", mobile: "select" }).mobile).toBe("select");
+    expect(resolveOptions({ variant: "tree", mobile: "offcanvas" }).mobile).toBe("offcanvas");
+    expect(warn).toHaveBeenCalledTimes(3);
   });
 
   it("sanitizes the id for use in element ids", () => {

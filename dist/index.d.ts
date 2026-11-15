@@ -52,6 +52,8 @@ declare const defaultOptions: {
         chevron: string;
         menu: string;
         close: string;
+        pin: string;
+        unpin: string;
         previous: string;
         next: string;
     };
@@ -95,6 +97,16 @@ declare const defaultOptions: {
     };
     flyout: {
         side: "auto";
+    };
+    rail: {
+        rest: "hidden";
+        side: "left";
+        expand: "hover";
+        content: "overlay";
+        hoverContent: "same";
+        pinContent: "same";
+        onNavigate: "close";
+        pin: true;
     };
     select: {
         button: false;

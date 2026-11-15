@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Added: `variant: rail`, the sidebar menu of the old Google Nexus site. A menu button opens a panel
+  at the screen edge in three states (closed, a strip of level-1 icons, the full menu with
+  collapsible folders); options `rail.rest` (`hidden` / `icons`), `rail.side` and `rail.expand`
+  (`hover` / `click`). Level-1 rows without a custom icon show a monogram. The panel starts below
+  the site's sticky bar, is lifted into the top layer inside clipping sidebars, and with
+  `rest: icons` the script exposes `quartz-nav-rail-left|right` and `--quartz-nav-rail-offset-left|right` on
+  `<html>` so the site can leave room for the strip.
+- Added: rail options `rail.expand: strip` (only the strip expands on hover), `rail.content`
+  (`overlay` / `push`: the open menu moves the page aside by padding `<body>`, animated through the
+  registered `--quartz-nav-rail-offset-left|right`) and `rail.pin` (a pin button that keeps the menu open
+  across clicks, Escape and page changes, remembered in `localStorage`). New icon names
+  `iconNames.pin` / `iconNames.unpin`.
+- Added: `rail.hoverContent` (`same` / `overlay` / `push`) for the strip from the button and a menu
+  opened by hover. `rail.content` now applies from the moment the menu shows, hover included, and
+  a menu opened by hover closes when the pointer leaves even after a click inside; only the pin
+  keeps it. `--quartz-nav-rail-offset-left|right` now carries only the distance a pushing rail
+  moves the page.
+- Added: `rail.pinContent` (`same` / `overlay` / `push`) for a pinned menu, and `rail.onNavigate`
+  (`close` / `keep`): with `keep` a link followed from the open menu leaves it open on the next page
+  until the pointer leaves it.
+- Changed: breakpoints come from QuartzControl's frame breakpoints
+  (`.quartz-gui/layout-breakpoints.json`) where present, before `quartz/styles/variables.scss`, so
+  the navigation switches at the same width as the page layout. A pushing rail lies over the page
+  instead where pushing would leave the page less than the mobile breakpoint.
 - Changed: `LICENSE` names boxi-os as the copyright holder instead of “Quartz Community”.
 
 ## [0.4.3] - 2026-10-18
