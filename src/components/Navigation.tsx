@@ -22,6 +22,8 @@ import { renderNavigation, renderPager, renderSelect, type RenderContext } from 
 import style from "./styles/navigations.scss";
 // @ts-expect-error the inline-script loader turns this into a string; see tsup.config.ts
 import script from "../scripts/navigations.inline";
+// @ts-expect-error the inline-script loader turns this into a string; see tsup.config.ts
+import restoreScript from "../scripts/rail-restore.inline";
 
 export default ((userOpts?: NavigationOptions) => {
   const opts = resolveOptions(userOpts);
@@ -92,6 +94,8 @@ export default ((userOpts?: NavigationOptions) => {
   };
 
   Navigation.css = css;
+  // Runs in <head> before the first paint: shows a pinned rail menu at once (see the script).
+  Navigation.beforeDOMLoaded = restoreScript as string;
   Navigation.afterDOMLoaded = script as string;
   return Navigation;
 }) satisfies QuartzComponentConstructor<NavigationOptions>;

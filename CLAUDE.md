@@ -60,7 +60,10 @@ Run tests matching a name: `npx vitest run -t "accordion"`
   (`lucide-static/icon-nodes.json` as a compact JSON string, loaders in `tsup.config.ts` and
   `vitest.config.ts`, type in `types/globals.d.ts`), parsed on first use.
 - `src/scripts/navigations.inline.ts` — browser script (persistence, popup closing, hover,
-  off-canvas scroll lock, select navigation). Must stay a script (no `export`).
+  off-canvas scroll lock, select navigation, rail). Must stay a script (no `export`).
+- `src/scripts/rail-restore.inline.ts` — `beforeDOMLoaded` script (Quartz's prescript, in
+  `<head>`): repeats a pinned rail menu from storage before the first paint. A classic script, so
+  it is wrapped in an IIFE.
 - `src/i18n/` — the plugin's own UI strings (`en-US`, `de-DE`).
 
 ### How Quartz wires the plugin (verified against Quartz v5)

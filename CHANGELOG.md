@@ -31,6 +31,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`.quartz-gui/layout-breakpoints.json`) where present, before `quartz/styles/variables.scss`, so
   the navigation switches at the same width as the page layout. A pushing rail lies over the page
   instead where pushing would leave the page less than the mobile breakpoint.
+- Fixed: a pinned, pushing rail no longer makes the page jump on a full load. A `beforeDOMLoaded`
+  script shows it before the first paint from what the main script stored; measured on the test
+  site, the layout shift of a reload went from 0.19 to the page's own 0.03.
 - Changed: `LICENSE` names boxi-os as the copyright holder instead of “Quartz Community”.
 
 ## [0.4.3] - 2026-10-18

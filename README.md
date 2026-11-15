@@ -228,6 +228,12 @@ without animation (remembered in `localStorage` per instance `id`). The pin butt
 button releases it. Pinning is for wide screens; below the mobile breakpoint a pinned menu stays
 closed until the window is wide again.
 
+On a full page load (reload, a new tab) a small script in `<head>` (the component's
+`beforeDOMLoaded`, Quartz's `prescript.js`) shows a pinned or carried-over menu before the page is
+first painted, so the page does not appear unpushed and then jump aside. It works from what the
+main script stored (`quartz-nav:<id>:rail-pinned`, `rail-carry`, `rail-top`); the main script
+takes over as soon as it runs.
+
 `rail.content` decides what the menu does to the page, from the first moment it shows. `overlay`
 (default) lays it over the page, like the original. `push` moves the page aside by the panel's
 visible width: the full menu, or the strip (`rest: icons`, or slid in from the button).

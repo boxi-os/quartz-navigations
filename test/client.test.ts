@@ -480,7 +480,12 @@ describe("client script", () => {
     navEl.querySelector<HTMLButtonElement>(".quartz-nav__rail-trigger")!.click();
     pin.click();
     expect(pin.getAttribute("aria-pressed")).toBe("true");
-    expect(localStorage.getItem("quartz-nav:pin:rail-pinned")).toBe("true");
+    // The record also feeds the early script in <head>: side, pushed width, mobile breakpoint.
+    expect(JSON.parse(localStorage.getItem("quartz-nav:pin:rail-pinned")!)).toEqual({
+      side: "left",
+      px: 0,
+      bp: 800,
+    });
     document.getElementById("outside")!.click();
     document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
     document.dispatchEvent(new CustomEvent("prenav") as never);
@@ -732,6 +737,22 @@ describe("client script", () => {
       proto.getBoundingClientRect = rect;
       Object.defineProperty(window, "innerWidth", { value: innerWidth, configurable: true });
     }
+  });
+
+  it("rail: takes over from the early script and remembers the panel's top edge", async () => {
+    const style = document.createElement("style");
+    style.id = "quartz-nav-rail-restore";
+    document.head.append(style);
+    document.documentElement.classList.add("quartz-nav-rail-instant");
+    mount(
+      `<nav data-quartz-nav="hand" data-variant="rail" data-rail-rest="icons" data-rail-expand="click" data-bp-mobile="800px" class="quartz-nav quartz-nav--rail quartz-nav--rail-icons quartz-nav--rail-left">
+        <button type="button" class="quartz-nav__rail-trigger" aria-expanded="false"></button>
+        <div class="quartz-nav__panel"><ul class="quartz-nav__list" data-level="1"><li><a href="./a">a</a></li></ul></div></nav>`,
+    );
+    await nav();
+    expect(document.getElementById("quartz-nav-rail-restore")).toBeNull();
+    expect(localStorage.getItem("quartz-nav:hand:rail-top")).toBe("0");
+    for (const fn of cleanups.splice(0)) fn();
   });
 
   it("rail: `expand: strip` ignores hovering the button but expands the strip", async () => {

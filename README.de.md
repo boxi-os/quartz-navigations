@@ -230,6 +230,13 @@ es ohne Animation wieder (in `localStorage` je Instanz-`id` gemerkt). Der Anheft
 Menü-Button lösen es. Anheften ist für breite Bildschirme gedacht; unterhalb des Mobile-Breakpoints
 bleibt ein angeheftetes Menü zu, bis das Fenster wieder breit ist.
 
+Beim vollständigen Laden einer Seite (Neuladen, neuer Tab) zeigt ein kleines Script im `<head>`
+(`beforeDOMLoaded` der Komponente, Quartz' `prescript.js`) ein angeheftetes oder mitgenommenes
+Menü schon vor dem ersten Zeichnen an, damit die Seite nicht erst ungeschoben erscheint und dann zur
+Seite springt. Es arbeitet mit dem, was das Haupt-Script gespeichert hat
+(`quartz-nav:<id>:rail-pinned`, `rail-carry`, `rail-top`); sobald das Haupt-Script läuft,
+übernimmt es.
+
 `rail.content` legt fest, was das Menü mit der Seite macht, vom ersten Moment an. `overlay`
 (Standard) legt es darüber, wie im Original. `push` schiebt die Seite um die sichtbare Breite des
 Panels zur Seite: das ganze Menü oder die Leiste (`rest: icons` oder vom Button eingeblendet).

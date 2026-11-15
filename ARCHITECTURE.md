@@ -26,7 +26,9 @@ component.
    first interaction (so the open animation never plays for folders rendered open), closes popup
    panels on Escape, outside clicks and navigation, opens them on hover when configured, manages
    the off-canvas scroll lock and navigates when a `<select>` option is chosen. Every listener is
-   registered with `window.addCleanup`.
+   registered with `window.addCleanup`. `rail-restore.inline.ts` runs earlier, once per full page
+   load in `<head>` (`beforeDOMLoaded`): it repeats a pinned or carried-over rail menu from storage
+   before the first paint, and the main script removes its stand-in `<style>` when it takes over.
 
 ## Data Model
 
@@ -84,7 +86,8 @@ compact JSON string. `vitest.config.ts` provides the same loaders for tests. `di
   - `components/Navigation.tsx`: constructor. `components/render.tsx`: markup per variant.
   - `components/styles/navigations.scss`: the single stylesheet (custom properties, layout per
     variant, animations, mobile modes).
-  - `scripts/navigations.inline.ts`: browser script.
+  - `scripts/navigations.inline.ts`: browser script. `scripts/rail-restore.inline.ts`: early
+    `<head>` script for restored rail menus.
   - `i18n/`: plugin UI strings.
   - `util/warn.ts` (`warnOnce`), `util/lang.ts` (`classNames`), `util/glob.ts`, `util/hash.ts`,
     `build/validate-manifest.ts`.

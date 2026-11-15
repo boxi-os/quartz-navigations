@@ -13,6 +13,8 @@ type NavState = Record<string, boolean>;
 const POPUPS = ["dropdown", "mega", "flyout"];
 const LOCK_CLASS = "quartz-nav-lock";
 const RAIL_PUSH_EVENT = "quartz-nav-rail-push";
+/** The <style> the early script (rail-restore.inline.ts) adds for restored menus. */
+const RESTORE_STYLE_ID = "quartz-nav-rail-restore";
 
 function storageKey(id: string): string {
   return `quartz-nav:${id}`;
@@ -454,18 +456,24 @@ function setupRail(nav: HTMLElement): void {
   // opened.
   let leaveArmed = false;
   let carrying = false;
+  // Pixels this rail currently pushes the page by, and the panel's last measured top edge.
+  let lastPx = 0;
+  let lastTop = -1;
   let timer: ReturnType<typeof setTimeout> | undefined;
 
   const readPinned = (): boolean => {
     try {
-      return localStorage.getItem(pinKey) === "true";
+      return localStorage.getItem(pinKey) !== null;
     } catch {
       return false;
     }
   };
+  // Besides the pin itself, the record holds what the early script in <head> needs to show the
+  // menu before this script runs (rail-restore.inline.ts): side, pushed width, mobile breakpoint.
+  const restoreRecord = () => ({ side, px: lastPx, bp: Number.isFinite(bpMobile) ? bpMobile : 0 });
   const writePinned = (value: boolean) => {
     try {
-      if (value) localStorage.setItem(pinKey, "true");
+      if (value) localStorage.setItem(pinKey, JSON.stringify(restoreRecord()));
       else localStorage.removeItem(pinKey);
     } catch {
       // storage unavailable: the pin lasts for this page only
@@ -523,6 +531,8 @@ function setupRail(nav: HTMLElement): void {
     const widthVar = state === "open" ? "--quartz-nav-rail-open-width" : "--quartz-nav-rail-width";
     const px = desktop && mode === "push" && width ? pxWidth(widthVar) : 0;
     const amount = desktop && mode === "push" && width && keepsView(px) ? width : "";
+    lastPx = amount && px > 0 ? Math.round(px) : 0;
+    if (pinned && state === "open" && desktop) writePinned(true);
     const before = root.dataset[pushKey];
     if (amount && px > 0) root.dataset[pushKey] = String(Math.round(px));
     else delete root.dataset[pushKey];
@@ -538,7 +548,18 @@ function setupRail(nav: HTMLElement): void {
     else delete nav.dataset.railPushing;
   };
 
-  const measure = () => nav.style.setProperty("--_rail-top", `${railTop(nav)}px`);
+  const topKey = `quartz-nav:${nav.dataset.quartzNav ?? ""}:rail-top`;
+  const measure = () => {
+    const top = Math.round(railTop(nav));
+    nav.style.setProperty("--_rail-top", `${top}px`);
+    if (top === lastTop) return;
+    lastTop = top;
+    try {
+      localStorage.setItem(topKey, String(top));
+    } catch {
+      // storage unavailable: the early script starts the panel at the top of the screen
+    }
+  };
   const cancel = () => {
     if (timer) clearTimeout(timer);
     timer = undefined;
@@ -556,9 +577,9 @@ function setupRail(nav: HTMLElement): void {
   };
   const setPinned = (value: boolean) => {
     pinned = value;
-    writePinned(value);
     pinButton?.setAttribute("aria-pressed", String(value));
     applyOffset();
+    if (!value) writePinned(false);
   };
   // The grace period lets the pointer travel from the button to the strip, which may sit at
   // the other end of the header.
@@ -597,10 +618,11 @@ function setupRail(nav: HTMLElement): void {
     try {
       const raw = sessionStorage.getItem(carryKey);
       sessionStorage.removeItem(carryKey);
+      if (!raw) return null;
+      const carry = JSON.parse(raw) as { how?: string; at?: number };
       // A link that did not lead anywhere (an anchor on the same page) leaves a stale entry;
       // only a page that follows within seconds takes it up.
-      const [how, at] = (raw ?? "").split(":");
-      return raw && Date.now() - Number(at) < 10000 ? { hover: how === "hover" } : null;
+      return Date.now() - Number(carry.at) < 10000 ? { hover: carry.how === "hover" } : null;
     } catch {
       return null;
     }
@@ -626,6 +648,14 @@ function setupRail(nav: HTMLElement): void {
     leaveArmed = true;
   } else {
     set("closed");
+  }
+  // From here on this script owns the menu: the early script's stand-in styles go, and its
+  // no-animation flag ends after the first frames.
+  document.getElementById(RESTORE_STYLE_ID)?.remove();
+  if (root.classList.contains("quartz-nav-rail-instant") && nav.dataset.railInstant === undefined) {
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => root.classList.remove("quartz-nav-rail-instant")),
+    );
   }
 
   const onTriggerClick = () => {
@@ -674,7 +704,10 @@ function setupRail(nav: HTMLElement): void {
     if (!link || !panel.contains(link)) return;
     carrying = true;
     try {
-      sessionStorage.setItem(carryKey, `${byHover ? "hover" : "click"}:${Date.now()}`);
+      sessionStorage.setItem(
+        carryKey,
+        JSON.stringify({ how: byHover ? "hover" : "click", at: Date.now(), ...restoreRecord() }),
+      );
     } catch {
       // storage unavailable: the menu closes as usual
       carrying = false;

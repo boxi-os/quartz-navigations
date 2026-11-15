@@ -20,7 +20,8 @@ See `ARCHITECTURE.md` for the lifecycle and file map, `README.md` for user-facin
 - `src/icons.tsx`: Lucide lookup and inline SVG rendering.
 - `src/breakpoints.ts`: reads the site's breakpoints (`.quartz-gui/layout-breakpoints.json`, else
   `quartz/styles/variables.scss`).
-- `src/scripts/navigations.inline.ts`: browser script.
+- `src/scripts/navigations.inline.ts`: browser script; `src/scripts/rail-restore.inline.ts`: the
+  early `<head>` script (`beforeDOMLoaded`) that shows a restored rail menu before the first paint.
 - `src/i18n/locales/*.ts`: plugin UI strings; add a locale by copying `en-US.ts` and registering
   it in `src/i18n/index.ts`.
 - `src/types.ts`: `NavigationOptions` (single definition, documented per field) and `NavNode`.
