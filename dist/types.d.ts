@@ -175,7 +175,8 @@ interface NavigationOptions {
     /** How dropdown, mega and flyout panels open: on click or on hover and focus. Defaults to `click`. */
     trigger?: NavTrigger;
     /**
-     * Override the breakpoints read from the site: QuartzControl's frame breakpoints
+     * Override the breakpoints read from the site: the frame breakpoints written by QuartzControl,
+     * the predecessor of QuartzHub
      * (`.quartz-gui/layout-breakpoints.json`) where present, else `quartz/styles/variables.scss`.
      */
     breakpoints?: NavigationBreakpoints;

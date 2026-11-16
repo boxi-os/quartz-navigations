@@ -27,7 +27,7 @@ Instanz wählt eigene Ebenen, Sortierung und Darstellung.
   Hover-Menüs und die Scroll-Sperre
 - Mehrsprachige Sites mit quartz-multilanguage: eine Navigation je Seitensprache, egal wie die
   Sprachen abgelegt sind
-- Breakpoints kommen aus der Site (Frame-Breakpoints von QuartzControl, sonst
+- Breakpoints kommen aus der Site (Frame-Breakpoints von QuartzControl, dem Vorgänger von QuartzHub, sonst
   `quartz/styles/variables.scss`), nicht fest verdrahtet
 
 ## Installation
@@ -227,15 +227,17 @@ Zeiger es verlässt (nur auf breiten Bildschirmen).
 Der Button zum Anheften oben im offenen Menü (`rail.pin`, standardmäßig an) hält es offen: Klicks
 daneben, Escape und Seitenwechsel lassen ein angeheftetes Menü in Ruhe, und die nächste Seite öffnet
 es ohne Animation wieder (in `localStorage` je Instanz-`id` gemerkt). Der Anheften-Button oder der
-Menü-Button lösen es. Anheften ist für breite Bildschirme gedacht; unterhalb des Mobile-Breakpoints
-bleibt ein angeheftetes Menü zu, bis das Fenster wieder breit ist.
+Menü-Button lösen es. Anheften ist für breite Bildschirme gedacht: Unterhalb des Mobile-Breakpoints
+bleibt ein angeheftetes Menü zu, öffnet und schließt dort wie jedes andere und ist wieder offen,
+sobald das Fenster breit genug ist.
 
 Beim vollständigen Laden einer Seite (Neuladen, neuer Tab) zeigt ein kleines Script im `<head>`
 (`beforeDOMLoaded` der Komponente, Quartz' `prescript.js`) ein angeheftetes oder mitgenommenes
 Menü schon vor dem ersten Zeichnen an, damit die Seite nicht erst ungeschoben erscheint und dann zur
-Seite springt. Es arbeitet mit dem, was das Haupt-Script gespeichert hat
-(`quartz-nav:<id>:rail-pinned`, `rail-carry`, `rail-top`); sobald das Haupt-Script läuft,
-übernimmt es.
+Seite springt; dasselbe gilt für die schiebende Leiste von `rest: icons`. Es arbeitet mit dem, was
+das Haupt-Script gespeichert hat (`quartz-nav:<id>:rail-pinned`, `rail-carry`, `rail-strip`,
+`rail-top`), und seine Regeln wirken nur, wo diese Navigation auf der Seite steht; sobald das
+Haupt-Script läuft, übernimmt es.
 
 `rail.content` legt fest, was das Menü mit der Seite macht, vom ersten Moment an. `overlay`
 (Standard) legt es darüber, wie im Original. `push` schiebt die Seite um die sichtbare Breite des
@@ -250,6 +252,7 @@ Beim Schieben schreibt das Client-Script die Breite in `--quartz-nav-rail-offset
 `-right`) auf `<html>`, das Stylesheet rückt `<body>` um diesen Wert ein, animiert (die Eigenschaft
 ist per `@property` registriert). Was die Site über das ganze Fenster legt, etwa eine Kopfzeile bis
 an beide Ränder, kann dieselbe Variable lesen. Mit `overlay` bleibt sie `0px` oder ungesetzt.
+Rails am selben Rand überlappen sich, die Seite rückt um die breiteste ein.
 
 Unterhalb des
 Mobile-Breakpoints gibt es keine Leiste: Der Button öffnet das ganze Menü über der abgedunkelten

@@ -919,8 +919,9 @@ html.quartz-nav-rail-instant {
       scrollbar-width: none;
       color: inherit;
       background: var(--quartz-nav-bg-panel);
+      // The edge facing the page, a physical side: `side` is a screen edge, also in RTL.
       border: 0;
-      border-inline-end: 1px solid var(--quartz-nav-border);
+      border-right: 1px solid var(--quartz-nav-border);
       transition:
         transform var(--quartz-nav-transition),
         width var(--quartz-nav-transition),
@@ -944,8 +945,8 @@ html.quartz-nav-rail-instant {
 
     &.quartz-nav--rail-right > .quartz-nav__panel {
       inset: var(--quartz-nav-rail-top, var(--_rail-top, 0px)) 0 0 auto;
-      border-inline-end: 0;
-      border-inline-start: 1px solid var(--quartz-nav-border);
+      border-right: 0;
+      border-left: 1px solid var(--quartz-nav-border);
     }
 
     // Title and pin button share the top row; the title starts where the strip ends.
@@ -954,7 +955,8 @@ html.quartz-nav-rail-instant {
       align-items: center;
       gap: 0.5rem;
       min-height: var(--quartz-nav-rail-row-height);
-      padding: 0.25rem var(--quartz-nav-item-padding-x) 0 var(--quartz-nav-rail-width);
+      padding-block: 0.25rem 0;
+      padding-inline: var(--quartz-nav-rail-width) var(--quartz-nav-item-padding-x);
 
       > .quartz-nav__title {
         flex: 1;
@@ -1075,20 +1077,22 @@ html.quartz-nav-rail-instant {
       color: var(--quartz-nav-bg-panel);
     }
 
-    // Nested levels hang from the icon column.
+    // Nested levels hang from the icon column, which sits at the inline start (the right in
+    // RTL). Both ends are set, so that the general physical indent does not add up with it.
     .quartz-nav__list .quartz-nav__list {
-      margin-left: calc(var(--quartz-nav-rail-width) / 2);
-      padding-left: calc(var(--quartz-nav-rail-width) / 2 - var(--quartz-nav-item-padding-x));
-      border-left: 1px solid var(--quartz-nav-border);
+      margin-inline: calc(var(--quartz-nav-rail-width) / 2) 0;
+      padding-inline: calc(var(--quartz-nav-rail-width) / 2 - var(--quartz-nav-item-padding-x)) 0;
+      border: 0;
+      border-inline-start: 1px solid var(--quartz-nav-border);
     }
 
     .quartz-nav__list .quartz-nav__list:has(> .quartz-nav__item.active) {
-      border-left-color: var(--quartz-nav-color-active);
+      border-inline-start-color: var(--quartz-nav-color-active);
     }
 
     .quartz-nav__list .quartz-nav__list .quartz-nav__list {
-      margin-left: calc(var(--quartz-nav-item-padding-x) + 0.1rem);
-      padding-left: calc(var(--quartz-nav-indent) - var(--quartz-nav-item-padding-x));
+      margin-inline: calc(var(--quartz-nav-item-padding-x) + 0.1rem) 0;
+      padding-inline: calc(var(--quartz-nav-indent) - var(--quartz-nav-item-padding-x)) 0;
     }
 
     // The strip shows level 1 only.
@@ -1234,6 +1238,12 @@ html.quartz-nav-rail-instant {
       &.quartz-nav--rail-icons.quartz-nav--rail-right:not([data-rail-state="open"])
         > .quartz-nav__panel {
         transform: translateX(100%);
+      }
+
+      // Without the script, focus in the navigation still opens the menu, as on wide screens.
+      &.quartz-nav--rail-icons:not([data-rail-state]):focus-within > .quartz-nav__panel {
+        visibility: visible;
+        transform: none;
       }
 
       &.quartz-nav--mobile-select > .quartz-nav__rail-trigger {

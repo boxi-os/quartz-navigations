@@ -13,8 +13,9 @@ export const defaultBreakpoints: Breakpoints = { mobile: "800px", desktop: "1200
 
 export const BREAKPOINTS_FILE = path.join("quartz", "styles", "variables.scss");
 /**
- * Where QuartzControl keeps the breakpoints its frames switch at (`{ "tablet": 1200, "mobile":
- * 900 }`, pixels). A site built with QuartzControl lays out by these, not by `variables.scss`.
+ * Where QuartzControl, the predecessor of QuartzHub, keeps the breakpoints its frames switch at
+ * (`{ "tablet": 1200, "mobile": 900 }`, pixels). A site laid out by such frames switches at these,
+ * not at `variables.scss`.
  */
 export const FRAME_BREAKPOINTS_FILE = path.join(".quartz-gui", "layout-breakpoints.json");
 
@@ -49,7 +50,7 @@ export function readProjectBreakpoints(cwd = process.cwd()): Partial<Breakpoints
 }
 
 /**
- * Reads QuartzControl's frame breakpoints. `mobile` is the width up to which the frame shows its
+ * Reads the frame breakpoints (QuartzControl, now QuartzHub). `mobile` is the width up to which the frame shows its
  * mobile layout, `tablet` the one up to which it shows the tablet layout, which is what Quartz
  * calls the desktop breakpoint.
  */
@@ -80,14 +81,17 @@ export function readFrameBreakpoints(cwd = process.cwd()): Partial<Breakpoints> 
   }
 }
 
+/** A positive length: a breakpoint of 0 would switch nothing. */
 function validLength(value: unknown): string | undefined {
-  if (typeof value === "number" && Number.isFinite(value)) return `${value}px`;
-  if (typeof value === "string" && /^[0-9.]+(px|rem|em)$/.test(value.trim())) return value.trim();
+  if (typeof value === "number" && Number.isFinite(value) && value > 0) return `${value}px`;
+  if (typeof value === "string" && /^[0-9.]+(px|rem|em)$/.test(value.trim())) {
+    return parseFloat(value) > 0 ? value.trim() : undefined;
+  }
   return undefined;
 }
 
 /**
- * The option wins, then the frame breakpoints of a QuartzControl site, then `variables.scss`,
+ * The option wins, then the frame breakpoints (`.quartz-gui/layout-breakpoints.json`), then `variables.scss`,
  * then Quartz's defaults. The frame comes first because it is what actually switches the page
  * layout: the navigation should change its presentation at the same width.
  */
@@ -97,7 +101,9 @@ export function resolveBreakpoints(
 ): Breakpoints {
   const frame = readFrameBreakpoints(cwd);
   const project = readProjectBreakpoints(cwd);
-  if (!project && !frame) {
+  // A frame file without usable values counts as no file.
+  const hasFrame = frame !== undefined && Object.keys(frame).length > 0;
+  if (!project && !hasFrame) {
     warnOnce(
       "breakpoints-file",
       `Could not read ${BREAKPOINTS_FILE}; using ${defaultBreakpoints.mobile} / ${defaultBreakpoints.desktop} as breakpoints.`,

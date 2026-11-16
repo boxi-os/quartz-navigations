@@ -1025,13 +1025,13 @@
             }
           },
           "additionalProperties": false,
-          "description": "Override the breakpoints read from the site: QuartzControl's frame breakpoints (`.quartz-gui/layout-breakpoints.json`) where present, else `quartz/styles/variables.scss`. The stylesheet is shared by all instances, so use the same value in every entry; `desktop` is accepted but currently unused.",
+          "description": "Override the breakpoints read from the site: the frame breakpoints written by QuartzControl, the predecessor of QuartzHub (`.quartz-gui/layout-breakpoints.json`) where present, else `quartz/styles/variables.scss`. The stylesheet is shared by all instances, so use the same value in every entry; `desktop` is accepted but currently unused.",
           "x-quartz-group": "On smartphones",
           "x-quartz-order": 610,
           "x-quartz-advanced": true,
           "x-quartz-l10n": {
             "de": {
-              "description": "Breakpoints der Site überschreiben, z. B. `{ mobile: 640px }`. Standard: die Frame-Breakpoints von QuartzControl (`.quartz-gui/layout-breakpoints.json`), sonst `quartz/styles/variables.scss`. Alle Instanzen teilen ein Stylesheet, also in jedem Eintrag denselben Wert setzen. `desktop` wird angenommen, derzeit aber nicht benutzt.",
+              "description": "Breakpoints der Site überschreiben, z. B. `{ mobile: 640px }`. Standard: die Frame-Breakpoints von QuartzControl, dem Vorgänger von QuartzHub (`.quartz-gui/layout-breakpoints.json`), sonst `quartz/styles/variables.scss`. Alle Instanzen teilen ein Stylesheet, also in jedem Eintrag denselben Wert setzen. `desktop` wird angenommen, derzeit aber nicht benutzt.",
               "group": "Auf dem Smartphone"
             }
           }

@@ -52,7 +52,7 @@ Run tests matching a name: `npx vitest run -t "accordion"`
   property (documented in the README). Open animations are bound to `details[data-animate]`,
   which the client script sets on first interaction so folders rendered open never animate on
   load. Media queries use `__NAV_BP_MOBILE__` / `__NAV_BP_DESKTOP__`, replaced by
-  `src/breakpoints.ts` with the values from the site's `.quartz-gui/layout-breakpoints.json` (QuartzControl
+  `src/breakpoints.ts` with the values from the site's `.quartz-gui/layout-breakpoints.json` (QuartzControl, now QuartzHub
   frames) or `quartz/styles/variables.scss` (Quartz 5
   has no config option for breakpoints).
 - `src/icons.tsx` — Lucide icons: `navIcon: lucide:<name>` and the plugin's own symbols

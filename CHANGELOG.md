@@ -27,13 +27,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added: `rail.pinContent` (`same` / `overlay` / `push`) for a pinned menu, and `rail.onNavigate`
   (`close` / `keep`): with `keep` a link followed from the open menu leaves it open on the next page
   until the pointer leaves it.
-- Changed: breakpoints come from QuartzControl's frame breakpoints
+- Changed: breakpoints come from the frame breakpoints written by QuartzControl (now QuartzHub)
   (`.quartz-gui/layout-breakpoints.json`) where present, before `quartz/styles/variables.scss`, so
   the navigation switches at the same width as the page layout. A pushing rail lies over the page
   instead where pushing would leave the page less than the mobile breakpoint.
 - Fixed: a pinned, pushing rail no longer makes the page jump on a full load. A `beforeDOMLoaded`
   script shows it before the first paint from what the main script stored; measured on the test
-  site, the layout shift of a reload went from 0.19 to the page's own 0.03.
+  site, the layout shift of a reload went from 0.19 to the page's own 0.03. Its rules are scoped
+  to their navigation (`body:has(…)`), so a stored menu the page does not have changes nothing;
+  the pushing strip of `rest: icons` is covered as well.
+- Fixed (review): rails on the same edge no longer undo each other's push (the page moves by the
+  widest); the offset is written in pixels; a pin holds on wide screens only, so a pinned menu can
+  be closed on a phone and comes back after a narrow load; `onNavigate: keep` ignores modified
+  clicks, new-tab links and links to the same page; resizing and scrolling are handled once per
+  frame; a panel that cannot become a popover stays visible; the rail's inner layout uses logical
+  properties for RTL; without JavaScript, focus opens a `rest: icons` rail on small screens too;
+  breakpoints of 0 or below are rejected.
 - Changed: `LICENSE` names boxi-os as the copyright holder instead of “Quartz Community”.
 
 ## [0.4.3] - 2026-10-18

@@ -66,7 +66,7 @@ describe("resolveBreakpoints", () => {
     });
   });
 
-  it("prefers a QuartzControl site's frame breakpoints over variables.scss", () => {
+  it("prefers the frame breakpoints (QuartzControl, now QuartzHub) over variables.scss", () => {
     fs.mkdirSync(path.join(dir, "quartz", "styles"), { recursive: true });
     fs.writeFileSync(path.join(dir, "quartz", "styles", "variables.scss"), VARIABLES);
     fs.mkdirSync(path.join(dir, ".quartz-gui"), { recursive: true });
@@ -82,7 +82,15 @@ describe("resolveBreakpoints", () => {
     });
     expect(parseFrameBreakpoints("{ broken")).toEqual({});
     expect(parseFrameBreakpoints(JSON.stringify({ mobile: 760 }))).toEqual({ mobile: "760px" });
+    expect(parseFrameBreakpoints(JSON.stringify({ mobile: 0, tablet: -5 }))).toEqual({});
     expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("treats a frame file without usable values as missing", () => {
+    fs.mkdirSync(path.join(dir, ".quartz-gui"), { recursive: true });
+    fs.writeFileSync(path.join(dir, ".quartz-gui", "layout-breakpoints.json"), "{}");
+    expect(resolveBreakpoints(undefined, dir)).toEqual({ mobile: "800px", desktop: "1200px" });
+    expect(warn).toHaveBeenCalledTimes(1);
   });
 
   it("falls back to Quartz's defaults with one warning when the file is missing", () => {

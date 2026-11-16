@@ -27,7 +27,7 @@ Each instance picks its own levels, sorting and presentation.
   and the scroll lock
 - Multilingual sites with quartz-multilanguage: one navigation per page language, whichever way
   the languages are laid out
-- Breakpoints are read from your site (QuartzControl's frame breakpoints, else
+- Breakpoints are read from your site (frame breakpoints of QuartzHub's predecessor QuartzControl, else
   `quartz/styles/variables.scss`), not hard-coded
 
 ## Installation
@@ -225,14 +225,15 @@ it closes once the pointer leaves it (wide screens only).
 The pin button at the top of the open menu (`rail.pin`, on by default) keeps it open: clicks
 outside, Escape and page changes leave a pinned menu alone, and the next page opens it again
 without animation (remembered in `localStorage` per instance `id`). The pin button or the menu
-button releases it. Pinning is for wide screens; below the mobile breakpoint a pinned menu stays
-closed until the window is wide again.
+button releases it. Pinning is for wide screens: below the mobile breakpoint a pinned menu stays
+closed, opens and closes like any other there, and comes back open once the window is wide again.
 
 On a full page load (reload, a new tab) a small script in `<head>` (the component's
 `beforeDOMLoaded`, Quartz's `prescript.js`) shows a pinned or carried-over menu before the page is
-first painted, so the page does not appear unpushed and then jump aside. It works from what the
-main script stored (`quartz-nav:<id>:rail-pinned`, `rail-carry`, `rail-top`); the main script
-takes over as soon as it runs.
+first painted, so the page does not appear unpushed and then jump aside; the same goes for the
+pushing strip of `rest: icons`. It works from what the main script stored
+(`quartz-nav:<id>:rail-pinned`, `rail-carry`, `rail-strip`, `rail-top`), and its rules only apply
+where that navigation is on the page; the main script takes over as soon as it runs.
 
 `rail.content` decides what the menu does to the page, from the first moment it shows. `overlay`
 (default) lays it over the page, like the original. `push` moves the page aside by the panel's
@@ -246,7 +247,8 @@ the page until it is pinned and then sits beside it.
 Pushing, the client script writes the width to `--quartz-nav-rail-offset-left` (or `-right`) on
 `<html>` and the stylesheet pads `<body>` by it, animated (the property is registered with
 `@property`). Anything the site lays out across the full window, such as a header bleeding to both
-edges, can read the same variable. With `overlay` the variable stays `0px` or unset.
+edges, can read the same variable. With `overlay` the variable stays `0px` or unset. Rails on the
+same edge overlap, so the page moves by the widest of them.
 
 Below the mobile breakpoint there is no strip: the button opens
 the full menu over a dimmed page, also with `rest: icons`. `mobile: select` and `hidden` work as

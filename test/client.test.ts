@@ -63,6 +63,11 @@ beforeAll(() => {
     removeEventListener: (_type: string, fn: () => void) => void mediaListeners.delete(fn),
   })) as never;
   window.addCleanup = (fn) => cleanups.push(fn as () => void);
+  // Quartz's SPA router takes link clicks over; jsdom would otherwise try to navigate.
+  document.addEventListener("click", (e) => {
+    if (e.target instanceof Element && e.target.closest("a[href]:not([href^='#'])"))
+      e.preventDefault();
+  });
   const source = fs.readFileSync(
     path.join(__dirname, "../src/scripts/navigations.inline.ts"),
     "utf8",
@@ -611,7 +616,7 @@ describe("client script", () => {
       const html = (keep: string) =>
         `<nav data-quartz-nav="kn" data-variant="rail" data-rail-rest="hidden" data-rail-expand="click" data-rail-on-navigate="${keep}" data-bp-mobile="800px" class="quartz-nav quartz-nav--rail quartz-nav--rail-hidden quartz-nav--rail-left">
           <button type="button" class="quartz-nav__rail-trigger" aria-expanded="false"></button>
-          <div class="quartz-nav__panel"><ul class="quartz-nav__list" data-level="1"><li><a href="#x" id="link">a</a></li></ul></div></nav>`;
+          <div class="quartz-nav__panel"><ul class="quartz-nav__list" data-level="1"><li><a href="/other-page" id="link">a</a></li></ul></div></nav>`;
       const go = () => {
         for (const fn of cleanups.splice(0)) fn();
         document.dispatchEvent(new CustomEvent("nav", { detail: { url: "docs/index" } }) as never);
@@ -677,20 +682,23 @@ describe("client script", () => {
       const offset = () => root.style.getPropertyValue("--quartz-nav-rail-offset-left");
       Object.defineProperty(window, "innerWidth", { value: 1700, configurable: true });
       navEl.querySelector<HTMLButtonElement>("button")!.click();
-      expect(offset()).toBe("20rem");
+      expect(offset()).toBe("320px");
       // A desktop page may get narrower than the desktop breakpoint: 1328 - 320 = 1008.
       Object.defineProperty(window, "innerWidth", { value: 1328, configurable: true });
       window.dispatchEvent(new Event("resize"));
-      expect(offset()).toBe("20rem");
+      await new Promise((r) => setTimeout(r, 50)); // resizing is handled once per frame
+      expect(offset()).toBe("320px");
       // But not narrower than the mobile one: 1100 - 320 = 780 < 900, the menu overlays.
       Object.defineProperty(window, "innerWidth", { value: 1100, configurable: true });
       window.dispatchEvent(new Event("resize"));
+      await new Promise((r) => setTimeout(r, 50)); // resizing is handled once per frame
       expect(offset()).toBe("0px");
       expect(navEl.dataset.railPushing).toBeUndefined();
       // Widening the window brings the push back.
       Object.defineProperty(window, "innerWidth", { value: 1240, configurable: true });
       window.dispatchEvent(new Event("resize"));
-      expect(offset()).toBe("20rem");
+      await new Promise((r) => setTimeout(r, 50)); // resizing is handled once per frame
+      expect(offset()).toBe("320px");
       for (const fn of cleanups.splice(0)) fn();
     } finally {
       proto.getBoundingClientRect = rect;
@@ -722,17 +730,17 @@ describe("client script", () => {
       ];
       // Both pinned, so that a click on one is not a click outside the other.
       left!.querySelector<HTMLButtonElement>(".quartz-nav__rail-pin")!.click();
-      expect(offsets()).toEqual(["20rem", "0px"]);
+      expect(offsets()).toEqual(["320px", "0px"]);
       // 1500 - 320 - 320 = 860 would be below the mobile breakpoint: the right one overlays.
       right!.querySelector<HTMLButtonElement>(".quartz-nav__rail-pin")!.click();
       expect(right!.dataset.railState).toBe("open");
-      expect(offsets()).toEqual(["20rem", "0px"]);
+      expect(offsets()).toEqual(["320px", "0px"]);
       // Once the left one closes, the right one has room and pushes.
       left!.querySelector<HTMLButtonElement>(".quartz-nav__rail-trigger")!.click();
       expect(left!.dataset.railState).toBe("closed");
-      expect(offsets()).toEqual(["0px", "20rem"]);
+      expect(offsets()).toEqual(["0px", "320px"]);
       for (const fn of cleanups.splice(0)) fn();
-      expect(root.dataset.quartzNavRailPushRight).toBeUndefined();
+      expect(root.style.getPropertyValue("--quartz-nav-rail-offset-right")).toBe("");
     } finally {
       proto.getBoundingClientRect = rect;
       Object.defineProperty(window, "innerWidth", { value: innerWidth, configurable: true });
@@ -752,6 +760,113 @@ describe("client script", () => {
     await nav();
     expect(document.getElementById("quartz-nav-rail-restore")).toBeNull();
     expect(localStorage.getItem("quartz-nav:hand:rail-top")).toBe("0");
+    for (const fn of cleanups.splice(0)) fn();
+  });
+
+  it("rail: the early script's stand-in style goes even on a page without a rail", async () => {
+    const style = document.createElement("style");
+    style.id = "quartz-nav-rail-restore";
+    document.head.append(style);
+    mount(
+      `<nav data-quartz-nav="plain" data-variant="tree"><div class="quartz-nav__panel"></div></nav>`,
+    );
+    await nav();
+    expect(document.getElementById("quartz-nav-rail-restore")).toBeNull();
+  });
+
+  it("rail: two rails on the same edge push by the wider, and neither undoes the other", async () => {
+    const rail = (id: string, content: string, width: string) =>
+      `<nav data-quartz-nav="${id}" data-variant="rail" data-rail-rest="hidden" data-rail-expand="click" data-rail-content="${content}" data-bp-mobile="800px" class="quartz-nav quartz-nav--rail quartz-nav--rail-hidden quartz-nav--rail-left" style="--quartz-nav-rail-open-width: ${width}">
+        <button type="button" class="quartz-nav__rail-trigger" aria-expanded="false"></button>
+        <div class="quartz-nav__panel"><div class="quartz-nav__rail-head"><button type="button" class="quartz-nav__rail-pin" aria-pressed="false"></button></div><ul class="quartz-nav__list" data-level="1"><li><a href="./a">a</a></li></ul></div></nav>`;
+    localStorage.setItem(
+      "quartz-nav:a:rail-pinned",
+      JSON.stringify({ side: "left", px: 0, bp: 800 }),
+    );
+    mount(rail("a", "push", "18rem") + rail("b", "overlay", "10rem"));
+    await nav();
+    const root = document.documentElement;
+    const [a] = Array.from(document.querySelectorAll<HTMLElement>("nav"));
+    // A was restored pinned and pushes; B, set up after it and closed, must not clear that.
+    expect(a!.dataset.railState).toBe("open");
+    expect(root.classList.contains("quartz-nav-rail-push-left")).toBe(true);
+    expect(root.style.getPropertyValue("--quartz-nav-rail-offset-left")).toBe("18rem");
+    window.dispatchEvent(new Event("resize"));
+    await new Promise((r) => setTimeout(r, 50));
+    expect(root.style.getPropertyValue("--quartz-nav-rail-offset-left")).toBe("18rem");
+    for (const fn of cleanups.splice(0)) fn();
+    expect(root.classList.contains("quartz-nav-rail-push-left")).toBe(false);
+    expect(root.style.getPropertyValue("--quartz-nav-rail-offset-left")).toBe("");
+  });
+
+  it("rail: a pin holds on wide screens only, and comes back after a narrow load", async () => {
+    const html = `<nav data-quartz-nav="hold" data-variant="rail" data-rail-rest="hidden" data-rail-expand="click" data-bp-mobile="800px" class="quartz-nav quartz-nav--rail quartz-nav--rail-hidden quartz-nav--rail-left">
+        <button type="button" class="quartz-nav__rail-trigger" aria-expanded="false"></button>
+        <div class="quartz-nav__rail-backdrop"></div>
+        <div class="quartz-nav__panel"><div class="quartz-nav__rail-head"><button type="button" class="quartz-nav__rail-pin" aria-pressed="false"></button></div><ul class="quartz-nav__list" data-level="1"><li><a href="./a" id="inside">a</a></li></ul></div></nav>`;
+    localStorage.setItem(
+      "quartz-nav:hold:rail-pinned",
+      JSON.stringify({ side: "left", px: 0, bp: 800 }),
+    );
+    // Loaded narrow: closed, but the pin is known.
+    mobile = true;
+    mount(html);
+    await nav();
+    const navEl = document.querySelector<HTMLElement>("nav")!;
+    const trigger = navEl.querySelector<HTMLButtonElement>(".quartz-nav__rail-trigger")!;
+    expect(navEl.dataset.railState).toBe("closed");
+    expect(navEl.querySelector(".quartz-nav__rail-pin")!.getAttribute("aria-pressed")).toBe("true");
+    // On the phone the menu closes like any other: outside click and Escape work.
+    trigger.click();
+    expect(navEl.dataset.railState).toBe("open");
+    document.getElementById("outside")!.click();
+    expect(navEl.dataset.railState).toBe("closed");
+    trigger.click();
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+    expect(navEl.dataset.railState).toBe("closed");
+    // Closing with the button on the phone does not unpin.
+    trigger.click();
+    trigger.click();
+    expect(localStorage.getItem("quartz-nav:hold:rail-pinned")).not.toBeNull();
+    // Widening brings it back open.
+    resize(false);
+    expect(navEl.dataset.railState).toBe("open");
+    for (const fn of cleanups.splice(0)) fn();
+  });
+
+  it("rail: `onNavigate: keep` ignores modified clicks and links to the same page", async () => {
+    mount(
+      `<nav data-quartz-nav="mod" data-variant="rail" data-rail-rest="hidden" data-rail-expand="click" data-rail-on-navigate="keep" data-bp-mobile="800px" class="quartz-nav quartz-nav--rail quartz-nav--rail-hidden quartz-nav--rail-left">
+        <button type="button" class="quartz-nav__rail-trigger" aria-expanded="false"></button>
+        <div class="quartz-nav__panel"><ul class="quartz-nav__list" data-level="1"><li><a href="/other" id="other">a</a></li><li><a href="#here" id="here">b</a></li></ul></div></nav>`,
+    );
+    await nav();
+    const navEl = document.querySelector<HTMLElement>("nav")!;
+    navEl.querySelector<HTMLButtonElement>("button")!.click();
+    document
+      .getElementById("other")!
+      .dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, ctrlKey: true }));
+    document.getElementById("here")!.click();
+    expect(sessionStorage.getItem("quartz-nav:mod:rail-carry")).toBeNull();
+    document.dispatchEvent(new CustomEvent("prenav") as never);
+    expect(navEl.dataset.railState).toBe("closed");
+    for (const fn of cleanups.splice(0)) fn();
+  });
+
+  it("rail: a pushing strip is stored for the early script, and forgotten without one", async () => {
+    const html = (rest: string) =>
+      `<nav data-quartz-nav="st" data-variant="rail" data-rail-rest="${rest}" data-rail-expand="click" data-rail-content="push" data-bp-mobile="800px" class="quartz-nav quartz-nav--rail quartz-nav--rail-${rest} quartz-nav--rail-right">
+        <button type="button" class="quartz-nav__rail-trigger" aria-expanded="false"></button>
+        <div class="quartz-nav__panel"><ul class="quartz-nav__list" data-level="1"><li><a href="./a">a</a></li></ul></div></nav>`;
+    mount(html("icons"));
+    await nav();
+    expect(JSON.parse(localStorage.getItem("quartz-nav:st:rail-strip")!)).toMatchObject({
+      side: "right",
+      bp: 800,
+    });
+    mount(html("hidden"));
+    await nav();
+    expect(localStorage.getItem("quartz-nav:st:rail-strip")).toBeNull();
     for (const fn of cleanups.splice(0)) fn();
   });
 

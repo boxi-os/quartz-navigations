@@ -392,11 +392,10 @@ function topBarAround(el: Element | null, wide: boolean): HTMLElement | null {
 }
 
 /**
- * Where the rail starts: below the site's top bar, so it does not slide under it. The bar is
- * the one the navigation sits in, or else whatever bar covers the top of the viewport (a rail
- * in a sidebar); 0 without one.
+ * The site's top bar the rail starts below: the one the navigation sits in, or else whatever
+ * bar covers the top of the viewport (a rail in a sidebar); `null` without one.
  */
-function railTop(nav: HTMLElement): number {
+function findTopBar(nav: HTMLElement): HTMLElement | null {
   let bar = topBarAround(nav.parentElement, false);
   if (!bar && typeof document.elementsFromPoint === "function") {
     const ys = [1, 0.05, 0.1].map((f) => Math.max(1, Math.round(window.innerHeight * f)));
@@ -409,7 +408,49 @@ function railTop(nav: HTMLElement): number {
       if (bar) break;
     }
   }
-  return bar ? Math.max(0, bar.getBoundingClientRect().bottom) : 0;
+  return bar;
+}
+
+type RailSide = "left" | "right";
+type RailPush = { px: number; css: string; can: boolean };
+
+/**
+ * What every rail on the page pushes, per screen edge. Rails on the same edge overlap, so the
+ * page moves by the widest of them; each rail only reports its own share and `syncRailSide`
+ * writes the result to <html>, so that no rail overwrites another's.
+ */
+const railPushes: Record<RailSide, Map<HTMLElement, RailPush>> = {
+  left: new Map(),
+  right: new Map(),
+};
+
+function railPushedPx(side: RailSide): number {
+  let px = 0;
+  for (const p of railPushes[side].values()) px = Math.max(px, p.px);
+  return px;
+}
+
+function syncRailSide(side: RailSide): void {
+  const root = document.documentElement;
+  const entries = [...railPushes[side].values()];
+  const can = entries.some((p) => p.can);
+  const widest = entries.reduce<RailPush | undefined>(
+    (best, p) => (p.css && (!best || p.px > best.px) ? p : best),
+    undefined,
+  );
+  const before = root.style.getPropertyValue(`--quartz-nav-rail-offset-${side}`);
+  root.classList.toggle(`quartz-nav-rail-push-${side}`, can);
+  root.classList.toggle(`quartz-nav-rail-${side}`, widest !== undefined);
+  // Pixels where the width could be measured: a token such as `min(20rem, 100vw)` read from
+  // the navigation would resolve against <html> instead and may differ (`em`) or be invalid
+  // for the registered length (`%`).
+  const value = widest ? (widest.px > 0 ? `${widest.px}px` : widest.css) : "0px";
+  if (can) root.style.setProperty(`--quartz-nav-rail-offset-${side}`, value);
+  else root.style.removeProperty(`--quartz-nav-rail-offset-${side}`);
+  // The rail on the other edge may now have room to push, or no longer have it.
+  if (root.style.getPropertyValue(`--quartz-nav-rail-offset-${side}`) !== before) {
+    document.dispatchEvent(new CustomEvent(RAIL_PUSH_EVENT, { detail: side }) as never);
+  }
 }
 
 /**
@@ -417,11 +458,13 @@ function railTop(nav: HTMLElement): number {
  * (`rest: icons`); `part` slides in the strip while the pointer rests on the button; `open` is
  * the full menu. Opened by hover, it closes when the pointer leaves, whatever was clicked in
  * it; opened by click or keyboard, it stays until a click outside, Escape, the button or a page
- * change. Pinned, only the button or the pin closes it, and it is restored on the next page.
+ * change. Pinned, only the button or the pin closes it, and it is restored on the next page;
+ * pinning holds on wide screens only, a phone treats a pinned menu like any other.
  *
  * `content` says whether the page moves aside (`push`) or stays under the menu (`overlay`);
- * `hoverContent` may say otherwise for the strip and a menu opened by hover. Pushing, the script
- * sets the width on <html> (`--quartz-nav-rail-offset-left|right`) and the stylesheet pads <body>.
+ * `hoverContent` and `pinContent` may say otherwise for hover and pin. Pushing, the script
+ * reports its width to `syncRailSide`, which sets `--quartz-nav-rail-offset-left|right` on
+ * <html>, and the stylesheet pads <body>.
  */
 function setupRail(nav: HTMLElement): void {
   if (nav.dataset.variant !== "rail") return;
@@ -447,44 +490,50 @@ function setupRail(nav: HTMLElement): void {
   const hoverButton = canHover && expand === "hover";
   const hoverStrip = canHover && (expand === "hover" || expand === "strip");
   const root = document.documentElement;
-  const pinKey = `quartz-nav:${nav.dataset.quartzNav ?? ""}:rail-pinned`;
-  const carryKey = `quartz-nav:${nav.dataset.quartzNav ?? ""}:rail-carry`;
+  const side: RailSide = nav.classList.contains("quartz-nav--rail-right") ? "right" : "left";
+  const otherSide: RailSide = side === "left" ? "right" : "left";
+  const id = nav.dataset.quartzNav ?? "";
+  const pinKey = `quartz-nav:${id}:rail-pinned`;
+  const carryKey = `quartz-nav:${id}:rail-carry`;
+  const stripKey = `quartz-nav:${id}:rail-strip`;
+  const topKey = `quartz-nav:${id}:rail-top`;
   let state: RailState = "closed";
   let byHover = false;
   let pinned = false;
   // Open across a page change (`onNavigate: keep`): leaving the menu closes it, however it was
   // opened.
   let leaveArmed = false;
-  let carrying = false;
+  // When a link in the menu was followed with `onNavigate: keep`; the page change that follows
+  // within seconds leaves the menu open.
+  let carryAt = 0;
   // Pixels this rail currently pushes the page by, and the panel's last measured top edge.
   let lastPx = 0;
   let lastTop = -1;
   let timer: ReturnType<typeof setTimeout> | undefined;
 
-  const readPinned = (): boolean => {
+  // A pin holds on wide screens only. On a phone the menu closes like any other, and the pin
+  // stays remembered for the next wide window.
+  const holding = () => pinned && !mobile();
+
+  const storage = (store: "local" | "session") =>
+    store === "local" ? window.localStorage : window.sessionStorage;
+  const remember = (store: "local" | "session", key: string, value: string | null) => {
     try {
-      return localStorage.getItem(pinKey) !== null;
+      const s = storage(store);
+      if (value === null) s.removeItem(key);
+      else if (s.getItem(key) !== value) s.setItem(key, value);
     } catch {
-      return false;
+      // storage unavailable: the state lasts for this page only
     }
   };
-  // Besides the pin itself, the record holds what the early script in <head> needs to show the
-  // menu before this script runs (rail-restore.inline.ts): side, pushed width, mobile breakpoint.
-  const restoreRecord = () => ({ side, px: lastPx, bp: Number.isFinite(bpMobile) ? bpMobile : 0 });
-  const writePinned = (value: boolean) => {
+  const recall = (store: "local" | "session", key: string): string | null => {
     try {
-      if (value) localStorage.setItem(pinKey, JSON.stringify(restoreRecord()));
-      else localStorage.removeItem(pinKey);
+      return storage(store).getItem(key);
     } catch {
-      // storage unavailable: the pin lasts for this page only
+      return null;
     }
   };
 
-  const side = nav.classList.contains("quartz-nav--rail-right") ? "right" : "left";
-  const sideClass = `quartz-nav-rail-${side}`;
-  const pushClass = `quartz-nav-rail-push-${side}`;
-  // One variable per side, so a rail on the left and one on the right do not overwrite each other.
-  const offsetVar = `--quartz-nav-rail-offset-${side}`;
   // The page switches its layout by the window's width, not by the room left beside a pushing
   // menu. A desktop layout may get narrower, down to the tablet range; but where pushing would
   // leave less than the mobile breakpoint, the page could not show its mobile layout, so the
@@ -496,6 +545,9 @@ function setupRail(nav: HTMLElement): void {
     return Number(m[1]) * (m[2] === "px" ? 1 : 16);
   };
   const bpMobile = bpPx(nav.dataset.bpMobile);
+  // What the early script in <head> needs to show the menu before this script runs
+  // (rail-restore.inline.ts): edge, pushed width, mobile breakpoint.
+  const restoreRecord = () => ({ side, px: lastPx, bp: Number.isFinite(bpMobile) ? bpMobile : 0 });
   const pxWidth = (name: string): number => {
     const probe = document.createElement("div");
     probe.style.cssText = `position:absolute;visibility:hidden;pointer-events:none;width:var(${name})`;
@@ -504,14 +556,10 @@ function setupRail(nav: HTMLElement): void {
     probe.remove();
     return width;
   };
-  // Each rail notes on <html> how many pixels it pushes, so that a rail on the other side
-  // counts them in: two menus pushing together must not squeeze the page either.
-  const pushKey = side === "right" ? "quartzNavRailPushRight" : "quartzNavRailPushLeft";
-  const otherKey = side === "right" ? "quartzNavRailPushLeft" : "quartzNavRailPushRight";
+  // A rail pushing on the other edge counts in: two menus together must not squeeze the page.
   const keepsView = (amount: number): boolean => {
     if (!(amount > 0) || !(bpMobile > 0)) return true;
-    const other = Number(root.dataset[otherKey] ?? 0) || 0;
-    return window.innerWidth - other - amount > bpMobile;
+    return window.innerWidth - railPushedPx(otherSide) - amount > bpMobile;
   };
   const cssWidth = (name: string, fallback: string) =>
     getComputedStyle(nav).getPropertyValue(name).trim() || fallback;
@@ -521,44 +569,42 @@ function setupRail(nav: HTMLElement): void {
   const applyOffset = () => {
     const desktop = !mobile();
     const viaHover = state === "part" || (state === "open" && byHover);
-    const mode = pinned && state === "open" ? pinMode : viaHover ? hoverMode : contentMode;
-    const width =
+    const mode = holding() && state === "open" ? pinMode : viaHover ? hoverMode : contentMode;
+    const widthVar =
       state === "open"
-        ? cssWidth("--quartz-nav-rail-open-width", "20rem")
+        ? "--quartz-nav-rail-open-width"
         : state === "part" || icons
-          ? cssWidth("--quartz-nav-rail-width", "3.5rem")
+          ? "--quartz-nav-rail-width"
           : "";
-    const widthVar = state === "open" ? "--quartz-nav-rail-open-width" : "--quartz-nav-rail-width";
-    const px = desktop && mode === "push" && width ? pxWidth(widthVar) : 0;
-    const amount = desktop && mode === "push" && width && keepsView(px) ? width : "";
-    lastPx = amount && px > 0 ? Math.round(px) : 0;
-    if (pinned && state === "open" && desktop) writePinned(true);
-    const before = root.dataset[pushKey];
-    if (amount && px > 0) root.dataset[pushKey] = String(Math.round(px));
-    else delete root.dataset[pushKey];
-    // The rail on the other side may now have room to push, or no longer have it.
-    if (root.dataset[pushKey] !== before) {
-      document.dispatchEvent(new CustomEvent(RAIL_PUSH_EVENT, { detail: side }) as never);
-    }
-    root.classList.toggle(pushClass, canPush && desktop);
-    root.classList.toggle(sideClass, amount !== "");
-    if (canPush && desktop) root.style.setProperty(offsetVar, amount || "0px");
-    else root.style.removeProperty(offsetVar);
-    if (amount && state === "open") nav.dataset.railPushing = "";
+    const pushes = desktop && mode === "push" && widthVar !== "";
+    const px = pushes ? Math.round(pxWidth(widthVar)) : 0;
+    const on = pushes && keepsView(px);
+    lastPx = on ? px : 0;
+    railPushes[side].set(nav, {
+      px: lastPx,
+      css: on ? cssWidth(widthVar, state === "open" ? "20rem" : "3.5rem") : "",
+      can: canPush && desktop,
+    });
+    syncRailSide(side);
+    if (on && state === "open") nav.dataset.railPushing = "";
     else delete nav.dataset.railPushing;
+    if (holding() && state === "open") remember("local", pinKey, JSON.stringify(restoreRecord()));
+    // The permanent strip's push, for the early script as well.
+    if (icons && state === "closed" && desktop) {
+      remember("local", stripKey, contentMode === "push" ? JSON.stringify(restoreRecord()) : null);
+    }
   };
 
-  const topKey = `quartz-nav:${nav.dataset.quartzNav ?? ""}:rail-top`;
-  const measure = () => {
-    const top = Math.round(railTop(nav));
+  let bar: HTMLElement | null | undefined;
+  // `full` searches the top bar again (layout changes); otherwise the known bar's position is
+  // read, which is all a scroll needs.
+  const measure = (full = false) => {
+    if (full || bar === undefined || (bar && !bar.isConnected)) bar = findTopBar(nav);
+    const top = bar ? Math.max(0, Math.round(bar.getBoundingClientRect().bottom)) : 0;
     nav.style.setProperty("--_rail-top", `${top}px`);
     if (top === lastTop) return;
     lastTop = top;
-    try {
-      localStorage.setItem(topKey, String(top));
-    } catch {
-      // storage unavailable: the early script starts the panel at the top of the screen
-    }
+    remember("local", topKey, String(top));
   };
   const cancel = () => {
     if (timer) clearTimeout(timer);
@@ -579,7 +625,7 @@ function setupRail(nav: HTMLElement): void {
     pinned = value;
     pinButton?.setAttribute("aria-pressed", String(value));
     applyOffset();
-    if (!value) writePinned(false);
+    if (!value) remember("local", pinKey, null);
   };
   // The grace period lets the pointer travel from the button to the strip, which may sit at
   // the other end of the header.
@@ -598,30 +644,33 @@ function setupRail(nav: HTMLElement): void {
   };
   // Clicks outside, Escape, leaving focus and page changes close only a menu that is not pinned.
   const dismiss = () => {
-    if (!pinned) close();
+    if (!holding()) close();
   };
 
   // Inside a scrolling or masked sidebar a fixed panel is still clipped; the top layer is not.
-  const lifted = clippingAncestor(nav) !== null && hasPopover(panel);
+  let lifted = clippingAncestor(nav) !== null && hasPopover(panel);
   if (lifted) {
     panel.setAttribute("popover", "manual");
     try {
       panel.showPopover();
     } catch {
-      // not supported here; the panel stays fixed in place
+      // Not possible here: without the attribute the panel stays an ordinary fixed box, rather
+      // than a popover the browser keeps hidden.
+      panel.removeAttribute("popover");
+      lifted = false;
     }
   }
 
   // A menu carried over from the previous page (pinned, or `onNavigate: keep`) is simply there,
   // without sliding in or moving the page.
   const readCarry = (): { hover: boolean } | null => {
+    const raw = recall("session", carryKey);
+    remember("session", carryKey, null);
+    if (!raw) return null;
     try {
-      const raw = sessionStorage.getItem(carryKey);
-      sessionStorage.removeItem(carryKey);
-      if (!raw) return null;
       const carry = JSON.parse(raw) as { how?: string; at?: number };
-      // A link that did not lead anywhere (an anchor on the same page) leaves a stale entry;
-      // only a page that follows within seconds takes it up.
+      // A link that did not lead anywhere leaves a stale entry; only a page that follows
+      // within seconds takes it up.
       return Date.now() - Number(carry.at) < 10000 ? { hover: carry.how === "hover" } : null;
     } catch {
       return null;
@@ -630,15 +679,14 @@ function setupRail(nav: HTMLElement): void {
   const instant = () => {
     nav.dataset.railInstant = "";
     root.classList.add("quartz-nav-rail-instant");
-    requestAnimationFrame(() =>
-      requestAnimationFrame(() => {
-        delete nav.dataset.railInstant;
-        root.classList.remove("quartz-nav-rail-instant");
-      }),
-    );
+    requestAnimationFrame(() => requestAnimationFrame(() => delete nav.dataset.railInstant));
   };
+  // A pin of a rail that no longer offers one is forgotten, so the early script stops showing it.
+  if (!pinButton) remember("local", pinKey, null);
+  if (!icons) remember("local", stripKey, null);
+  const storedPin = pinButton !== null && recall("local", pinKey) !== null;
   const carried = readCarry();
-  if (pinButton !== null && readPinned() && !mobile()) {
+  if (storedPin && !mobile()) {
     instant();
     setPinned(true);
     set("open");
@@ -647,26 +695,24 @@ function setupRail(nav: HTMLElement): void {
     set("open", carried.hover);
     leaveArmed = true;
   } else {
+    // Loaded on a small screen, a stored pin waits for a wide window.
+    if (storedPin) {
+      pinned = true;
+      pinButton?.setAttribute("aria-pressed", "true");
+    }
     set("closed");
-  }
-  // From here on this script owns the menu: the early script's stand-in styles go, and its
-  // no-animation flag ends after the first frames.
-  document.getElementById(RESTORE_STYLE_ID)?.remove();
-  if (root.classList.contains("quartz-nav-rail-instant") && nav.dataset.railInstant === undefined) {
-    requestAnimationFrame(() =>
-      requestAnimationFrame(() => root.classList.remove("quartz-nav-rail-instant")),
-    );
   }
 
   const onTriggerClick = () => {
     if (state === "open") {
-      setPinned(false);
+      // Closing on a phone leaves the pin for the next wide window.
+      if (!mobile()) setPinned(false);
       close();
     } else {
       set("open");
     }
   };
-  // Pinning makes a menu opened by hover a deliberate one: it follows `content` from now on.
+  // Pinning makes a menu opened by hover a deliberate one: it follows `pinContent` from now on.
   const onPinClick = () => {
     setPinned(!pinned);
     if (pinned && state !== "open") {
@@ -688,30 +734,33 @@ function setupRail(nav: HTMLElement): void {
     if (state !== "open" && !mobile()) set("open", true);
   };
   const onPanelLeave = () => {
-    if (state === "open" && (byHover || leaveArmed) && !pinned) later("closed", 300);
+    if (state === "open" && (byHover || leaveArmed) && !holding()) later("closed", 300);
   };
   // After a page change the pointer may rest in the menu without ever having entered this
   // page's panel, so leaving is read from the pointer's position instead.
   const onPointerMove = (e: MouseEvent) => {
-    if (!leaveArmed || state !== "open" || pinned) return;
+    if (!leaveArmed || state !== "open" || holding()) return;
     if (e.target instanceof Node && nav.contains(e.target)) cancel();
     else if (!timer) later("closed", 300);
   };
   // `onNavigate: keep`: a link followed from the open menu leaves it open on the next page.
+  // Only a plain click on a link to another page of this site counts: a modified click opens a
+  // new tab and an anchor stays on this page, and neither should keep the menu open later.
   const onPanelClick = (e: MouseEvent) => {
-    if (!keepOnNavigate || pinned || state !== "open" || mobile()) return;
+    if (!keepOnNavigate || holding() || state !== "open" || mobile()) return;
+    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
     const link = e.target instanceof Element ? e.target.closest("a[href]") : null;
-    if (!link || !panel.contains(link)) return;
-    carrying = true;
-    try {
-      sessionStorage.setItem(
-        carryKey,
-        JSON.stringify({ how: byHover ? "hover" : "click", at: Date.now(), ...restoreRecord() }),
-      );
-    } catch {
-      // storage unavailable: the menu closes as usual
-      carrying = false;
-    }
+    if (!(link instanceof HTMLAnchorElement) || !panel.contains(link)) return;
+    if ((link.target && link.target !== "_self") || link.hasAttribute("download")) return;
+    const url = new URL(link.href, window.location.href);
+    if (url.origin !== window.location.origin) return;
+    if (url.pathname === window.location.pathname && url.search === window.location.search) return;
+    carryAt = Date.now();
+    remember(
+      "session",
+      carryKey,
+      JSON.stringify({ how: byHover ? "hover" : "click", at: carryAt, ...restoreRecord() }),
+    );
   };
   const onFocusIn = () => {
     if (state !== "open") set("open");
@@ -724,35 +773,41 @@ function setupRail(nav: HTMLElement): void {
     if (state !== "closed" && (!(e.target instanceof Node) || !nav.contains(e.target))) dismiss();
   };
   const onKey = (e: KeyboardEvent) => {
-    if (e.key !== "Escape" || state === "closed" || pinned) return;
+    if (e.key !== "Escape" || state === "closed" || holding()) return;
     const focused = document.activeElement;
     const inside = focused instanceof Node && nav.contains(focused);
     close();
     if (inside) trigger.focus();
   };
   const onPrenav = () => {
-    if (!pinned && !carrying) set("closed");
+    const carrying = carryAt > 0 && Date.now() - carryAt < 10000;
+    carryAt = 0;
+    if (!holding() && !carrying) set("closed");
   };
-  // A sticky bar with a gap above it (a frame's padding) moves up as the page scrolls, so a
-  // visible panel re-measures its top edge, at most once per frame.
+  // Scrolling moves a sticky bar with a gap above it (a frame's padding), resizing may change
+  // the layout and the room to push; both are handled at most once per frame.
   let frame = 0;
-  const onReflow = () => {
-    if (frame || (state === "closed" && !icons)) return;
+  let resized = false;
+  const schedule = () => {
+    if (frame) return;
     frame = requestAnimationFrame(() => {
       frame = 0;
-      measure();
+      if (state !== "closed" || icons) measure(resized);
+      if (resized) applyOffset();
+      resized = false;
     });
+  };
+  const onScroll = () => {
+    if (state !== "closed" || icons) schedule();
+  };
+  const onResize = () => {
+    resized = true;
+    schedule();
   };
   const onOtherPush = (e: Event) => {
     if ((e as CustomEvent<string>).detail !== side) applyOffset();
   };
-  // A narrower window may leave no room to push, a wider one may make room again.
-  const onResize = () => {
-    onReflow();
-    applyOffset();
-  };
-  // Pinning belongs to wide screens: a phone closes the menu, and widening the window again
-  // brings a pinned menu back.
+  // A phone closes a pinned menu; widening the window again brings it back.
   const onQuery = () => {
     if (mobile() && state === "part") set("closed");
     else if (mobile() && pinned && state === "open") set("closed");
@@ -774,7 +829,7 @@ function setupRail(nav: HTMLElement): void {
   document.addEventListener("prenav", onPrenav);
   window.addEventListener("resize", onResize);
   document.addEventListener(RAIL_PUSH_EVENT, onOtherPush);
-  window.addEventListener("scroll", onReflow, { passive: true });
+  window.addEventListener("scroll", onScroll, { passive: true });
   if (hoverButton) {
     trigger.addEventListener("mouseenter", onTriggerEnter);
     trigger.addEventListener("mouseleave", onTriggerLeave);
@@ -782,7 +837,7 @@ function setupRail(nav: HTMLElement): void {
   if (hoverStrip) panel.addEventListener("mouseenter", onPanelEnter);
   const watchQuery = query && typeof query.addEventListener === "function";
   if (watchQuery) query.addEventListener("change", onQuery);
-  if (icons) measure();
+  if (icons) measure(true);
 
   window.addCleanup(() => {
     cancel();
@@ -798,7 +853,7 @@ function setupRail(nav: HTMLElement): void {
     document.removeEventListener("prenav", onPrenav);
     window.removeEventListener("resize", onResize);
     document.removeEventListener(RAIL_PUSH_EVENT, onOtherPush);
-    window.removeEventListener("scroll", onReflow);
+    window.removeEventListener("scroll", onScroll);
     if (frame) cancelAnimationFrame(frame);
     trigger.removeEventListener("mouseenter", onTriggerEnter);
     trigger.removeEventListener("mouseleave", onTriggerLeave);
@@ -806,10 +861,24 @@ function setupRail(nav: HTMLElement): void {
     panel.removeEventListener("mouseleave", onPanelLeave);
     if (watchQuery) query.removeEventListener("change", onQuery);
     if (lifted) dropPanel(panel);
-    root.classList.remove(LOCK_CLASS, sideClass, pushClass, "quartz-nav-rail-instant");
-    root.style.removeProperty(offsetVar);
-    delete root.dataset[pushKey];
+    root.classList.remove(LOCK_CLASS);
+    railPushes[side].delete(nav);
+    syncRailSide(side);
   });
+}
+
+/**
+ * After every page setup: the early script's stand-in styles go, whether or not a rail on this
+ * page claimed them (a stored menu may belong to a rail this page does not have), and its
+ * no-animation flag ends after the first frames.
+ */
+function settleRailRestore(): void {
+  document.getElementById(RESTORE_STYLE_ID)?.remove();
+  const root = document.documentElement;
+  if (!root.classList.contains("quartz-nav-rail-instant")) return;
+  requestAnimationFrame(() =>
+    requestAnimationFrame(() => root.classList.remove("quartz-nav-rail-instant")),
+  );
 }
 
 function setupSelects(nav: HTMLElement): void {
@@ -876,6 +945,7 @@ function setup(): void {
     setupSelects(nav);
     scrollActiveIntoView(nav);
   });
+  settleRailRestore();
 }
 
 document.addEventListener("nav", setup);

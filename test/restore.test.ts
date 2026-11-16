@@ -74,14 +74,40 @@ describe("rail restore script", () => {
     );
     localStorage.setItem("quartz-nav:demo-rail:rail-top", "69");
     run();
-    expect(root.classList.contains("quartz-nav-rail-push-left")).toBe(true);
-    expect(root.classList.contains("quartz-nav-rail-instant")).toBe(true);
-    expect(root.style.getPropertyValue("--quartz-nav-rail-offset-left")).toBe("320px");
+    const nav = 'nav[data-quartz-nav="demo-rail"].quartz-nav--rail-left';
     expect(style()).toContain('nav[data-quartz-nav="demo-rail"]{--_rail-top:69px}');
-    expect(style()).toContain(
-      'nav[data-quartz-nav="demo-rail"]>.quartz-nav__panel{visibility:visible;transform:none;',
-    );
+    expect(style()).toContain(`${nav}>.quartz-nav__panel{visibility:visible;transform:none;`);
     expect(style()).toContain(".quartz-nav__icon--unpin{display:inline-flex}");
+    // The padding only applies where that very navigation is on the page.
+    expect(style()).toContain(`body:has(${nav}){padding-left:320px}`);
+    // Nothing on <html> but the no-animation flag: a page without the rail stays as it is.
+    expect(root.className).toBe("quartz-nav-rail-instant");
+    expect(root.getAttribute("style")).toBeNull();
+  });
+
+  it("pushes for the permanent strip of `rest: icons` with `content: push`", () => {
+    localStorage.setItem(
+      "quartz-nav:strip:rail-strip",
+      JSON.stringify({ side: "right", px: 56, bp: 900 }),
+    );
+    run();
+    const nav = 'nav[data-quartz-nav="strip"].quartz-nav--rail-right.quartz-nav--rail-icons';
+    expect(style()).toContain(`body:has(${nav}){padding-right:56px}`);
+    expect(style()).not.toContain("visibility:visible");
+  });
+
+  it("lets an open menu win over the strip of the same navigation", () => {
+    localStorage.setItem(
+      "quartz-nav:x:rail-strip",
+      JSON.stringify({ side: "left", px: 56, bp: 900 }),
+    );
+    localStorage.setItem(
+      "quartz-nav:x:rail-pinned",
+      JSON.stringify({ side: "left", px: 320, bp: 900 }),
+    );
+    run();
+    expect(style()).toContain("padding-left:320px");
+    expect(style()).not.toContain("padding-left:56px");
   });
 
   it("overlays instead of pushing below the mobile breakpoint, and skips small screens", () => {
@@ -91,8 +117,10 @@ describe("rail restore script", () => {
     );
     width(1100); // 1100 - 320 = 780 < 900
     run();
-    expect(root.classList.contains("quartz-nav-rail-push-left")).toBe(false);
-    expect(style()).toContain('nav[data-quartz-nav="l"]>.quartz-nav__panel{visibility:visible');
+    expect(style()).not.toContain("padding-left");
+    expect(style()).toContain(
+      'nav[data-quartz-nav="l"].quartz-nav--rail-left>.quartz-nav__panel{visibility:visible',
+    );
     expect(style()).toContain("box-shadow");
 
     document.getElementById("quartz-nav-rail-restore")?.remove();
@@ -100,34 +128,37 @@ describe("rail restore script", () => {
     width(800);
     run();
     expect(document.getElementById("quartz-nav-rail-restore")).toBeNull();
+    expect(root.className).toBe("");
   });
 
-  it("counts a rail on the other side and takes up a fresh carry-over only", () => {
+  it("counts a rail on the other side, left first, and takes up a fresh carry-over only", () => {
+    sessionStorage.setItem(
+      "quartz-nav:r:rail-carry",
+      JSON.stringify({ how: "click", at: Date.now(), side: "right", px: 320, bp: 900 }),
+    );
     localStorage.setItem(
       "quartz-nav:l:rail-pinned",
       JSON.stringify({ side: "left", px: 320, bp: 900 }),
     );
     sessionStorage.setItem(
-      "quartz-nav:r:rail-carry",
-      JSON.stringify({ how: "click", at: Date.now(), side: "right", px: 320, bp: 900 }),
-    );
-    sessionStorage.setItem(
       "quartz-nav:old:rail-carry",
       JSON.stringify({ how: "click", at: Date.now() - 60000, side: "right", px: 320, bp: 900 }),
     );
-    width(1500); // 1500 - 320 - 320 = 860 < 900: only one side pushes
+    width(1500); // 1500 - 320 - 320 = 860 < 900: only one side pushes, the left one
     run();
-    const pushed = ["left", "right"].filter((s) =>
-      root.classList.contains(`quartz-nav-rail-push-${s}`),
-    );
-    expect(pushed).toHaveLength(1);
-    expect(style()).toContain('nav[data-quartz-nav="r"]>');
+    expect(style()).toContain("padding-left:320px");
+    expect(style()).not.toContain("padding-right");
+    expect(style()).toContain('nav[data-quartz-nav="r"].quartz-nav--rail-right>');
     expect(style()).not.toContain('nav[data-quartz-nav="old"]');
   });
 
   it("ignores malformed records and unsafe ids", () => {
     localStorage.setItem("quartz-nav:a:rail-pinned", "true");
     localStorage.setItem("quartz-nav:b:rail-pinned", "{broken");
+    localStorage.setItem(
+      "quartz-nav:c:rail-pinned",
+      JSON.stringify({ side: "left", px: -5, bp: 1 }),
+    );
     localStorage.setItem(
       'quartz-nav:x"]{}:rail-pinned',
       JSON.stringify({ side: "left", px: 1, bp: 1 }),
