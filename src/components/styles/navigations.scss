@@ -6,7 +6,8 @@
 // `.quartz-nav[data-quartz-nav="side"]` / `className`.
 //
 // Media queries use `__NAV_BP_MOBILE__` / `__NAV_BP_DESKTOP__`, replaced at construction time
-// with the breakpoints of the site's `quartz/styles/variables.scss`.
+// with the breakpoints of the option `breakpoints`, the site's `.quartz-gui/layout-breakpoints.json`
+// or its `quartz/styles/variables.scss`, in that order (src/breakpoints.ts).
 html.quartz-nav-lock {
   overflow: hidden;
 }

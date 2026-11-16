@@ -11,9 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   at the screen edge in three states (closed, a strip of level-1 icons, the full menu with
   collapsible folders); options `rail.rest` (`hidden` / `icons`), `rail.side` and `rail.expand`
   (`hover` / `click`). Level-1 rows without a custom icon show a monogram. The panel starts below
-  the site's sticky bar, is lifted into the top layer inside clipping sidebars, and with
-  `rest: icons` the script exposes `quartz-nav-rail-left|right` and `--quartz-nav-rail-offset-left|right` on
-  `<html>` so the site can leave room for the strip.
+  the site's sticky bar and is lifted into the top layer inside clipping sidebars.
 - Added: rail options `rail.expand: strip` (only the strip expands on hover), `rail.content`
   (`overlay` / `push`: the open menu moves the page aside by padding `<body>`, animated through the
   registered `--quartz-nav-rail-offset-left|right`) and `rail.pin` (a pin button that keeps the menu open
@@ -43,6 +41,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   frame; a panel that cannot become a popover stays visible; the rail's inner layout uses logical
   properties for RTL; without JavaScript, focus opens a `rest: icons` rail on small screens too;
   breakpoints of 0 or below are rejected.
+- Changed: the rail's German label in `quartz.configSchema` is “Randmenü”; the README shows how a
+  header across the full window stays in place over a pushing rail.
 - Changed: `LICENSE` names boxi-os as the copyright holder instead of “Quartz Community”.
 
 ## [0.4.3] - 2026-10-18

@@ -250,6 +250,18 @@ Pushing, the client script writes the width to `--quartz-nav-rail-offset-left` (
 edges, can read the same variable. With `overlay` the variable stays `0px` or unset. Rails on the
 same edge overlap, so the page moves by the widest of them.
 
+A header that spans the window should stay where it is while a rail on the left pushes the page,
+since the panel starts below it. Pull it back over the padding:
+
+```scss
+html.quartz-nav-rail-push-left .site-header {
+  margin-inline-start: calc(-1 * var(--quartz-nav-rail-offset-left, 0px));
+}
+html.quartz-nav-rail-push-right .site-header {
+  margin-inline-end: calc(-1 * var(--quartz-nav-rail-offset-right, 0px));
+}
+```
+
 Below the mobile breakpoint there is no strip: the button opens
 the full menu over a dimmed page, also with `rest: icons`. `mobile: select` and `hidden` work as
 usual; `accordion` and `offcanvas` are ignored with a warning, because the rail slides in by itself.

@@ -254,6 +254,18 @@ ist per `@property` registriert). Was die Site über das ganze Fenster legt, etw
 an beide Ränder, kann dieselbe Variable lesen. Mit `overlay` bleibt sie `0px` oder ungesetzt.
 Rails am selben Rand überlappen sich, die Seite rückt um die breiteste ein.
 
+Eine Kopfzeile über die ganze Fensterbreite soll stehen bleiben, während eine Rail links die Seite
+schiebt, denn das Panel beginnt unter ihr. Sie holt sich den Einzug zurück:
+
+```scss
+html.quartz-nav-rail-push-left .site-header {
+  margin-inline-start: calc(-1 * var(--quartz-nav-rail-offset-left, 0px));
+}
+html.quartz-nav-rail-push-right .site-header {
+  margin-inline-end: calc(-1 * var(--quartz-nav-rail-offset-right, 0px));
+}
+```
+
 Unterhalb des
 Mobile-Breakpoints gibt es keine Leiste: Der Button öffnet das ganze Menü über der abgedunkelten
 Seite, auch mit `rest: icons`. `mobile: select` und `hidden` wirken wie gewohnt; `accordion` und
