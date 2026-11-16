@@ -7,43 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- Added: `variant: rail`, the sidebar menu of the old Google Nexus site. A menu button opens a panel
-  at the screen edge in three states (closed, a strip of level-1 icons, the full menu with
-  collapsible folders); options `rail.rest` (`hidden` / `icons`), `rail.side` and `rail.expand`
-  (`hover` / `click`). Level-1 rows without a custom icon show a monogram. The panel starts below
+## [0.5.0] - 2026-11-16
+
+### Added
+
+- `variant: rail` (German label “Randmenü”): a menu button where the layout puts the navigation and
+  a panel at the screen edge in three states (closed, a strip of level-1 icons, the full menu with
+  collapsible folders). Level-1 rows without a custom icon show a monogram. The panel starts below
   the site's sticky bar and is lifted into the top layer inside clipping sidebars.
-- Added: rail options `rail.expand: strip` (only the strip expands on hover), `rail.content`
-  (`overlay` / `push`: the open menu moves the page aside by padding `<body>`, animated through the
-  registered `--quartz-nav-rail-offset-left|right`) and `rail.pin` (a pin button that keeps the menu open
-  across clicks, Escape and page changes, remembered in `localStorage`). New icon names
+- Rail options: `rail.rest` (`hidden` / `icons`), `rail.side` (`left` / `right`), `rail.expand`
+  (`hover` / `strip` / `click`), `rail.content` (`overlay` / `push`), `rail.hoverContent` and
+  `rail.pinContent` (`same` / `overlay` / `push`, for what hover shows and for a pinned menu),
+  `rail.pin` (a pin button that keeps the menu open across clicks, Escape and page changes,
+  remembered in `localStorage`, on wide screens only) and `rail.onNavigate` (`close` / `keep`: a
+  link followed from the open menu leaves it open on the next page until the pointer leaves it;
+  modified clicks, new-tab links and links to the same page are ignored). New icon names
   `iconNames.pin` / `iconNames.unpin`.
-- Added: `rail.hoverContent` (`same` / `overlay` / `push`) for the strip from the button and a menu
-  opened by hover. `rail.content` now applies from the moment the menu shows, hover included, and
-  a menu opened by hover closes when the pointer leaves even after a click inside; only the pin
-  keeps it. `--quartz-nav-rail-offset-left|right` now carries only the distance a pushing rail
-  moves the page.
-- Added: `rail.pinContent` (`same` / `overlay` / `push`) for a pinned menu, and `rail.onNavigate`
-  (`close` / `keep`): with `keep` a link followed from the open menu leaves it open on the next page
-  until the pointer leaves it.
-- Changed: breakpoints come from the frame breakpoints written by QuartzControl (now QuartzHub)
-  (`.quartz-gui/layout-breakpoints.json`) where present, before `quartz/styles/variables.scss`, so
-  the navigation switches at the same width as the page layout. A pushing rail lies over the page
-  instead where pushing would leave the page less than the mobile breakpoint.
-- Fixed: a pinned, pushing rail no longer makes the page jump on a full load. A `beforeDOMLoaded`
-  script shows it before the first paint from what the main script stored; measured on the test
-  site, the layout shift of a reload went from 0.19 to the page's own 0.03. Its rules are scoped
-  to their navigation (`body:has(…)`), so a stored menu the page does not have changes nothing;
-  the pushing strip of `rest: icons` is covered as well.
-- Fixed (review): rails on the same edge no longer undo each other's push (the page moves by the
-  widest); the offset is written in pixels; a pin holds on wide screens only, so a pinned menu can
-  be closed on a phone and comes back after a narrow load; `onNavigate: keep` ignores modified
-  clicks, new-tab links and links to the same page; resizing and scrolling are handled once per
-  frame; a panel that cannot become a popover stays visible; the rail's inner layout uses logical
-  properties for RTL; without JavaScript, focus opens a `rest: icons` rail on small screens too;
-  breakpoints of 0 or below are rejected.
-- Changed: the rail's German label in `quartz.configSchema` is “Randmenü”; the README shows how a
-  header across the full window stays in place over a pushing rail.
-- Changed: `LICENSE` names boxi-os as the copyright holder instead of “Quartz Community”.
+- Pushing pads `<body>` by `--quartz-nav-rail-offset-left|right` (in pixels, registered with
+  `@property` so it animates; rails on the same edge push by the widest). Where pushing would leave
+  the page less than the mobile breakpoint, counting a pushing rail on the other side, the rail lies
+  over the page instead. The README shows how a header across the full window stays in place.
+- A `beforeDOMLoaded` script shows a pinned, pushing rail before the first paint, so a full load
+  does not make the page jump (layout shift of a reload on the test site: 0.19 before, the page's
+  own 0.03 after). Its rules are scoped to their navigation (`body:has(…)`).
+
+### Changed
+
+- Breakpoints come from the frame breakpoints QuartzHub writes (`.quartz-gui/layout-breakpoints.json`)
+  where present, before `quartz/styles/variables.scss`, so the navigation switches at the same width
+  as the page layout. Breakpoints of 0 or below are rejected.
+- `mobile: accordion` and `offcanvas` do not apply to the rail, which slides in by itself; they fall
+  back to `same` with a warning.
+- `LICENSE` names boxi-os as the copyright holder instead of “Quartz Community”.
 
 ## [0.4.3] - 2026-10-18
 
