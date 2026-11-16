@@ -178,6 +178,18 @@ describe("buildTree", () => {
     expect(node(mapped, "b/c").icon).toBe("none");
   });
 
+  it("reads navDivider and dividers", () => {
+    const files = [
+      page("a", "A.md", { navDivider: true }),
+      page("b/index", "b/index.md"),
+      page("c", "C.md"),
+    ];
+    const t = tree({ dividers: ["/b/"] }, files);
+    expect(node(t, "a").divider).toBe(true);
+    expect(node(t, "b/index").divider).toBe(true);
+    expect(node(t, "c").divider).toBeUndefined();
+  });
+
   it("treats folder notes and _index as folder pages", () => {
     const files = [
       page("notes/index", "notes/notes.md", { title: "Notes" }),

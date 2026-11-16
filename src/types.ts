@@ -66,6 +66,11 @@ export interface NavigationFrontmatterKeys {
    * as `lucide:<name>` (e.g. `lucide:book-open`). Defaults to `navIcon`.
    */
   icon?: string;
+  /**
+   * `true` draws a line before the page, or before the folder when set on its index page,
+   * which separates it from the entries above. Defaults to `navDivider`.
+   */
+  divider?: string;
 }
 
 /** Lucide icon names for the plugin's own symbols. */
@@ -138,6 +143,11 @@ export interface NavigationOptions {
    * Same syntax as `navIcon` (`lucide:<name>`, text, emoji, or `none`); frontmatter wins.
    */
   nodeIcons?: Record<string, string>;
+  /**
+   * Paths of pages and folders with a line before them, e.g. `["blog", "about"]`; the same as
+   * `navDivider` in their frontmatter.
+   */
+  dividers?: string[];
   /** Folder the navigation starts at, e.g. `docs`. Defaults to the site root. */
   rootPath?: string;
   /** Which subtree to show relative to the current page. Defaults to `root`. */
@@ -260,6 +270,11 @@ export interface NavigationOptions {
      * menu button (remembered in `localStorage`; not on small screens). Defaults to `true`.
      */
     pin?: boolean;
+    /**
+     * Start with the menu pinned on wide screens, until a visitor unpins it (remembered in
+     * `localStorage`). Needs `pin`. Defaults to `false`.
+     */
+    startPinned?: boolean;
   };
   /** Options of the `select` variant and of `mobile: select`. */
   select?: {
@@ -297,6 +312,7 @@ export interface ResolvedOptions {
   icons: NavIcons;
   iconNames: Required<NavigationIconNames>;
   nodeIcons: Record<string, string>;
+  dividers: string[];
   rootPath: string;
   scope: NavScope;
   depth: number;
@@ -337,6 +353,7 @@ export interface ResolvedOptions {
     pinContent: NavRailHoverContent;
     onNavigate: NavRailOnNavigate;
     pin: boolean;
+    startPinned: boolean;
   };
   select: { button: boolean };
   columns: { max: number };
@@ -362,6 +379,8 @@ export interface NavNode {
   /** Folder: the index page is generated, there is no `index.md`. */
   isVirtual: boolean;
   order?: number;
+  /** A line before this entry (`navDivider`, `dividers`). */
+  divider?: boolean;
   listOrder?: number;
   prefixOrder?: number;
   date?: Date;

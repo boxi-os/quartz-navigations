@@ -200,9 +200,25 @@ function renderList(nodes: NavNode[], level: number, ctx: RenderContext, extraCl
   if (nodes.length === 0) return null;
   return (
     <ul class={classNames("quartz-nav__list", extraClass)} data-level={String(level)}>
-      {nodes.map((n) => renderItem(n, level, ctx))}
+      {renderItems(nodes, level, ctx, false)}
     </ul>
   );
+}
+
+/**
+ * The entries of one list, each with the line `navDivider` / `dividers` asks for before it. A
+ * line needs something above it: the first entry gets one only after a home or overview entry.
+ */
+function renderItems(nodes: NavNode[], level: number, ctx: RenderContext, leading: boolean) {
+  return nodes.flatMap((n, i) =>
+    n.divider && (i > 0 || leading)
+      ? [divider(), renderItem(n, level, ctx)]
+      : [renderItem(n, level, ctx)],
+  );
+}
+
+function divider() {
+  return <li class="quartz-nav__divider" role="separator"></li>;
 }
 
 function indexEntry(node: NavNode, ctx: RenderContext, level: number) {
@@ -245,6 +261,7 @@ function renderItem(node: NavNode, level: number, ctx: RenderContext) {
   const withType = typeIconsAt(level, ctx);
   const pageIcon: TypeIcon | undefined = withType ? "file" : undefined;
   const lead = railLead(level, node, ctx);
+  const overview = showChildren ? indexEntry(node, ctx, level + 1) : null;
 
   if (!collapsible) {
     // The glyph reports the folder's state, not whether its children happen to be visible:
@@ -262,8 +279,8 @@ function renderItem(node: NavNode, level: number, ctx: RenderContext) {
         })}
         {showChildren && (
           <ul class="quartz-nav__list" data-level={String(level + 1)}>
-            {indexEntry(node, ctx, level + 1)}
-            {node.children.map((c) => renderItem(c, level + 1, ctx))}
+            {overview}
+            {renderItems(node.children, level + 1, ctx, overview !== null)}
           </ul>
         )}
       </li>
@@ -310,8 +327,8 @@ function renderItem(node: NavNode, level: number, ctx: RenderContext) {
           {(opts.chevrons || separateLink) && chevron(ctx)}
         </summary>
         <ul class="quartz-nav__list" data-level={String(level + 1)}>
-          {indexEntry(node, ctx, level + 1)}
-          {node.children.map((c) => renderItem(c, level + 1, ctx))}
+          {overview}
+          {renderItems(node.children, level + 1, ctx, overview !== null)}
         </ul>
       </details>
     </li>
@@ -322,7 +339,8 @@ function renderTabs(ctx: RenderContext) {
   const { root } = ctx.scope;
   const primary = (
     <ul class="quartz-nav__list quartz-nav__tabs" data-level="1">
-      {root.children.map((n) => (
+      {root.children.flatMap((n, i) => [
+        n.divider && i > 0 ? divider() : null,
         <li
           class={classNames(
             "quartz-nav__item",
@@ -332,8 +350,8 @@ function renderTabs(ctx: RenderContext) {
           data-slug={n.slug}
         >
           {titleEl(n, ctx)}
-        </li>
-      ))}
+        </li>,
+      ])}
     </ul>
   );
   const activeTab = root.children.find(
@@ -479,6 +497,8 @@ function rootData(ctx: RenderContext) {
     "data-rail-hover-content": opts.variant === "rail" ? opts.rail.hoverContent : undefined,
     "data-rail-pin-content": opts.variant === "rail" ? opts.rail.pinContent : undefined,
     "data-rail-on-navigate": opts.variant === "rail" ? opts.rail.onNavigate : undefined,
+    "data-rail-start-pinned":
+      opts.variant === "rail" && opts.rail.pin && opts.rail.startPinned ? "true" : undefined,
     "data-bp-mobile": ctx.mobileBreakpoint,
   };
 }
@@ -501,7 +521,7 @@ export function renderNavigation(ctx: RenderContext) {
     ) : (
       <ul class="quartz-nav__list" data-level="1">
         {home}
-        {root.children.map((n) => renderItem(n, 1, ctx))}
+        {renderItems(root.children, 1, ctx, home !== null)}
       </ul>
     );
 

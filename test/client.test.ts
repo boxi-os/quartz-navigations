@@ -513,6 +513,82 @@ describe("client script", () => {
     expect(localStorage.getItem("quartz-nav:pin:rail-pinned")).toBeNull();
   });
 
+  it("rail: unpinning lets leaving close the menu again, however it was opened", async () => {
+    vi.useFakeTimers();
+    try {
+      const html = `<nav data-quartz-nav="unpin" data-variant="rail" data-rail-rest="icons" data-rail-expand="hover" data-bp-mobile="800px" class="quartz-nav quartz-nav--rail quartz-nav--rail-icons quartz-nav--rail-left">
+        <button type="button" class="quartz-nav__rail-trigger" aria-expanded="false"></button>
+        <div class="quartz-nav__panel"><div class="quartz-nav__rail-head"><button type="button" class="quartz-nav__rail-pin" aria-pressed="false"></button></div>
+        <ul class="quartz-nav__list" data-level="1"><li><a href="./a">a</a></li></ul></div></nav>`;
+      mount(html);
+      for (const fn of cleanups.splice(0)) fn();
+      document.dispatchEvent(new CustomEvent("nav", { detail: { url: "docs/index" } }) as never);
+      const navEl = document.querySelector<HTMLElement>("nav")!;
+      const panel = navEl.querySelector<HTMLElement>(".quartz-nav__panel")!;
+      const pin = navEl.querySelector<HTMLButtonElement>(".quartz-nav__rail-pin")!;
+
+      // Opened by hover, pinned, unpinned: leaving closes it as before the pin.
+      panel.dispatchEvent(new MouseEvent("mouseenter"));
+      expect(navEl.dataset.railState).toBe("open");
+      pin.click();
+      panel.dispatchEvent(new MouseEvent("mouseleave"));
+      vi.advanceTimersByTime(800);
+      expect(navEl.dataset.railState).toBe("open");
+      panel.dispatchEvent(new MouseEvent("mouseenter"));
+      pin.click();
+      expect(pin.getAttribute("aria-pressed")).toBe("false");
+      panel.dispatchEvent(new MouseEvent("mouseleave"));
+      vi.advanceTimersByTime(800);
+      expect(navEl.dataset.railState).toBe("closed");
+
+      // Opened by the button, pinned, unpinned: the same.
+      navEl.querySelector<HTMLButtonElement>(".quartz-nav__rail-trigger")!.click();
+      pin.click();
+      pin.click();
+      panel.dispatchEvent(new MouseEvent("mouseleave"));
+      vi.advanceTimersByTime(800);
+      expect(navEl.dataset.railState).toBe("closed");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("rail: `startPinned` opens the menu pinned until a visitor unpins it", async () => {
+    const html = `<nav data-quartz-nav="start" data-variant="rail" data-rail-rest="icons" data-rail-expand="hover" data-rail-start-pinned="true" data-bp-mobile="800px" class="quartz-nav quartz-nav--rail quartz-nav--rail-icons quartz-nav--rail-left">
+        <button type="button" class="quartz-nav__rail-trigger" aria-expanded="false"></button>
+        <div class="quartz-nav__panel"><div class="quartz-nav__rail-head"><button type="button" class="quartz-nav__rail-pin" aria-pressed="false"></button></div>
+        <ul class="quartz-nav__list" data-level="1"><li><a href="./a">a</a></li></ul></div></nav>`;
+    mount(html);
+    await nav();
+    let navEl = document.querySelector<HTMLElement>("nav")!;
+    expect(navEl.dataset.railState).toBe("open");
+    expect(navEl.querySelector(".quartz-nav__rail-pin")!.getAttribute("aria-pressed")).toBe("true");
+    // Stored like a pin of the visitor's own, so the early script shows it before the first paint.
+    expect(localStorage.getItem("quartz-nav:start:rail-pinned")).not.toBeNull();
+
+    navEl.querySelector<HTMLButtonElement>(".quartz-nav__rail-pin")!.click();
+    expect(localStorage.getItem("quartz-nav:start:rail-pinned")).toBeNull();
+    expect(localStorage.getItem("quartz-nav:start:rail-unpinned")).toBe("true");
+    document.getElementById("outside")!.click();
+    expect(navEl.dataset.railState).toBe("closed");
+
+    // The next page keeps the visitor's choice.
+    mount(html);
+    await nav();
+    navEl = document.querySelector<HTMLElement>("nav")!;
+    expect(navEl.dataset.railState).toBe("closed");
+
+    // Pinning again forgets the unpin; without `startPinned` the record goes as well.
+    navEl.querySelector<HTMLButtonElement>(".quartz-nav__rail-trigger")!.click();
+    navEl.querySelector<HTMLButtonElement>(".quartz-nav__rail-pin")!.click();
+    expect(localStorage.getItem("quartz-nav:start:rail-unpinned")).toBeNull();
+    localStorage.setItem("quartz-nav:start:rail-unpinned", "true");
+    mount(html.replace(' data-rail-start-pinned="true"', ""));
+    await nav();
+    expect(localStorage.getItem("quartz-nav:start:rail-unpinned")).toBeNull();
+    localStorage.removeItem("quartz-nav:start:rail-pinned");
+  });
+
   it("rail: push moves the page however the menu was opened, unless hoverContent says otherwise", async () => {
     const html = (hover: string) =>
       `<nav data-quartz-nav="push" data-variant="rail" data-rail-rest="hidden" data-rail-expand="hover" data-rail-content="push" data-rail-hover-content="${hover}" data-bp-mobile="800px" class="quartz-nav quartz-nav--rail quartz-nav--rail-hidden quartz-nav--rail-left" style="--quartz-nav-rail-open-width: 18rem; --quartz-nav-rail-width: 4rem">

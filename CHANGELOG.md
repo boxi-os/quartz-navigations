@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Dividers: `navDivider: true` in a page's frontmatter (on an `index.md`, the folder's) or its
+  path in the new option `dividers` draws a line before the entry (`li.quartz-nav__divider`,
+  `role="separator"`), across lists and upright in rows; never at the top of a list. New
+  frontmatter key `frontmatterKeys.divider`, custom properties `--quartz-nav-divider-color` and
+  `--quartz-nav-divider-gap`.
+- `rail.startPinned`: the menu starts pinned on wide screens until a visitor unpins it; the unpin
+  is remembered in `localStorage`.
+
+### Fixed
+
+- Rail: a menu that was pinned and then unpinned stayed open until the next click; where hover
+  opens the menu, leaving it closes it again.
+
 ## [0.5.0] - 2026-11-16
 
 ### Added

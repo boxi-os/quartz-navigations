@@ -497,6 +497,9 @@ function setupRail(nav: HTMLElement): void {
   const carryKey = `quartz-nav:${id}:rail-carry`;
   const stripKey = `quartz-nav:${id}:rail-strip`;
   const topKey = `quartz-nav:${id}:rail-top`;
+  // `startPinned`: the menu starts pinned until a visitor unpins it; that choice is kept here.
+  const startPinned = pinButton !== null && nav.dataset.railStartPinned === "true";
+  const unpinnedKey = `quartz-nav:${id}:rail-unpinned`;
   let state: RailState = "closed";
   let byHover = false;
   let pinned = false;
@@ -626,6 +629,7 @@ function setupRail(nav: HTMLElement): void {
     pinButton?.setAttribute("aria-pressed", String(value));
     applyOffset();
     if (!value) remember("local", pinKey, null);
+    if (startPinned) remember("local", unpinnedKey, value ? null : "true");
   };
   // The grace period lets the pointer travel from the button to the strip, which may sit at
   // the other end of the header.
@@ -684,7 +688,10 @@ function setupRail(nav: HTMLElement): void {
   // A pin of a rail that no longer offers one is forgotten, so the early script stops showing it.
   if (!pinButton) remember("local", pinKey, null);
   if (!icons) remember("local", stripKey, null);
-  const storedPin = pinButton !== null && recall("local", pinKey) !== null;
+  if (!startPinned) remember("local", unpinnedKey, null);
+  const storedPin =
+    pinButton !== null &&
+    (recall("local", pinKey) !== null || (startPinned && recall("local", unpinnedKey) === null));
   const carried = readCarry();
   if (storedPin && !mobile()) {
     instant();
@@ -713,13 +720,17 @@ function setupRail(nav: HTMLElement): void {
     }
   };
   // Pinning makes a menu opened by hover a deliberate one: it follows `pinContent` from now on.
+  // Unpinned, it is an ordinary open menu again: where hovering opens it, leaving closes it, even
+  // when a click opened it before it was pinned (it stayed open until the next click otherwise).
   const onPinClick = () => {
     setPinned(!pinned);
     if (pinned && state !== "open") {
       set("open");
-    } else if (byHover) {
+    } else if (pinned && byHover) {
       byHover = false;
       applyOffset();
+    } else if (!pinned && state === "open" && hoverStrip && !mobile()) {
+      leaveArmed = true;
     }
   };
   const onTriggerEnter = () => {

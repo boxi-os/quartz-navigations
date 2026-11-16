@@ -58,6 +58,7 @@ declare const defaultOptions: {
         next: string;
     };
     nodeIcons: {};
+    dividers: never[];
     rootPath: string;
     scope: "root";
     depth: number;
@@ -76,6 +77,7 @@ declare const defaultOptions: {
         title: string;
         hide: string;
         icon: string;
+        divider: string;
     };
     hideTags: true;
     hideUnlisted: true;
@@ -107,6 +109,7 @@ declare const defaultOptions: {
         pinContent: "same";
         onNavigate: "close";
         pin: true;
+        startPinned: false;
     };
     select: {
         button: false;

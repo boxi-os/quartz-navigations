@@ -97,6 +97,7 @@ describe("resolveOptions", () => {
       title: "navTitle",
       hide: "navHide",
       icon: "navIcon",
+      divider: "navDivider",
     });
   });
 
@@ -110,6 +111,7 @@ describe("resolveOptions", () => {
       pinContent: "same",
       onNavigate: "close",
       pin: true,
+      startPinned: false,
     });
     const opts = resolveOptions({
       variant: "rail",
@@ -122,6 +124,7 @@ describe("resolveOptions", () => {
         pinContent: "push",
         onNavigate: "keep",
         pin: false,
+        startPinned: true,
       },
     });
     expect(opts.rail).toEqual({
@@ -133,6 +136,7 @@ describe("resolveOptions", () => {
       pinContent: "push",
       onNavigate: "keep",
       pin: false,
+      startPinned: true,
     });
     expect(warn).not.toHaveBeenCalled();
     expect(resolveOptions({ rail: { rest: "strip" as never } }).rail.rest).toBe("hidden");

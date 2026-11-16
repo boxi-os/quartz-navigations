@@ -346,6 +346,40 @@ describe("Navigation component", () => {
     expect(findAll(bare, "span", "quartz-nav__monogram").map(text)).toEqual(["B", "D", "O", "P"]);
   });
 
+  it("dividers: a line before an entry, never at the top of a list", () => {
+    const items = (nav: VNode) =>
+      findAll(nav, "li")
+        .filter((li) => li.props.class?.includes("quartz-nav__divider") || li.props["data-slug"])
+        .filter(
+          (li) => !li.props["data-slug"]?.includes("/") || li.props["data-slug"].endsWith("/index"),
+        )
+        .map((li) =>
+          li.props.class.includes("quartz-nav__divider") ? "|" : li.props["data-slug"],
+        );
+    const plain = render({ variant: "bar", depth: 1, dividers: ["blog", "orte"] }, "index")!;
+    expect(items(plain)).toEqual(["blog/index", "docs/index", "|", "orte/index", "private/index"]);
+    const divider = find(plain, "li", "quartz-nav__divider");
+    expect(divider.props.role).toBe("separator");
+    // After the home entry the first one gets its line.
+    const withHome = render(
+      { variant: "rail", depth: 1, showHome: true, dividers: ["blog"] },
+      "index",
+    )!;
+    expect(items(withHome)).toEqual([
+      "index",
+      "|",
+      "blog/index",
+      "docs/index",
+      "orte/index",
+      "private/index",
+    ]);
+    const tabs = render(
+      { variant: "tabs", tabs: { secondary: false }, dividers: ["docs"] },
+      "index",
+    )!;
+    expect(items(tabs)).toEqual(["blog/index", "|", "docs/index", "orte/index", "private/index"]);
+  });
+
   it("dropdown and mega: only the first level collapses and never starts open", () => {
     const nav = render({ variant: "dropdown", persistState: true }, "docs/guides/alpha")!;
     const details = findAll(nav, "details");

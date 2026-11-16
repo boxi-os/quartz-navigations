@@ -269,6 +269,12 @@ function finalize(
   if (prefixOrder !== undefined) node.prefixOrder = prefixOrder;
   const date = dateOf(draft, opts);
   if (date) node.date = date;
+  if (
+    readBoolean(draft.frontmatter, opts.frontmatterKeys.divider) === true ||
+    opts.dividers.includes(path)
+  ) {
+    node.divider = true;
+  }
   if (opts.icons === "custom" || opts.icons === "both") {
     const icon = readString(draft.frontmatter, opts.frontmatterKeys.icon) || opts.nodeIcons[path];
     if (icon) node.icon = icon;
