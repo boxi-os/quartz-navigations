@@ -1,5 +1,6 @@
 import type { Translation } from "../i18n";
-import { LucideIcon, lucideName } from "../icons";
+import { LucideIcon, lucideName, SvgFileIcon } from "../icons";
+import { svgIconRef } from "../svg-icons";
 import { hrefFor, linkTarget } from "../links";
 import { flatten, pagerNeighbours, type Scope } from "../scope";
 import type { NavNode, NavTree, ResolvedOptions } from "../types";
@@ -14,6 +15,10 @@ export interface RenderContext {
   t: Translation;
   displayClass?: string;
   mobileBreakpoint: string;
+  /** Quartz's content folder, where `svg:` icon paths start. */
+  contentDir?: string;
+  /** Counts the file icons drawn on this page, so each gets its own ids. */
+  svgIcons?: { drawn: number };
 }
 
 /** Variants whose folders open as panels; they never start open and are never persisted. */
@@ -83,6 +88,15 @@ function icon(node: NavNode, ctx: RenderContext, typeIcon?: TypeIcon) {
     if (node.icon.toLowerCase() === "none") return null;
     const lucide = lucideName(node.icon);
     if (lucide) return <LucideIcon name={lucide} className="quartz-nav__icon" />;
+    // Called, not mounted: a file that cannot be used gives null here, so the rail strip falls
+    // back to its monogram instead of an empty slot.
+    if (svgIconRef(node.icon))
+      return SvgFileIcon({
+        value: node.icon,
+        contentDir: ctx.contentDir,
+        className: "quartz-nav__icon quartz-nav__icon--svg",
+        instance: `${ctx.id}-${ctx.svgIcons ? ++ctx.svgIcons.drawn : 0}`,
+      });
     return (
       <span class="quartz-nav__icon" aria-hidden="true">
         {node.icon}

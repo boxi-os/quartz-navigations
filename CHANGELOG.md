@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Own SVG icons: `svg:<path>` and `svg-mono:<path>` in `navIcon` and `nodeIcons` draw an SVG file
+  from the content folder inline, like a Lucide icon. `svg:` keeps the file's colours, `svg-mono:`
+  turns them into `currentColor`. The file is rebuilt from an allow list (taken from
+  QuartzControl's "Insert image", parsed with xmldom): no scripts, handlers, `<style>`, links,
+  outside references or DOCTYPE entities; ids get a prefix per drawing. Paths outside the content
+  folder, files over 50 KB and unreadable files log one build warning and draw no icon (the rail
+  strip shows the monogram).
+
 ## [0.5.1] - 2026-11-16
 
 ### Added

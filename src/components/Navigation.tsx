@@ -82,6 +82,8 @@ export default ((userOpts?: NavigationOptions) => {
       t: i18n(locale),
       displayClass,
       mobileBreakpoint: breakpoints.mobile,
+      contentDir: contentDirOf(props),
+      svgIcons: { drawn: 0 },
     };
     switch (opts.variant) {
       case "select":
@@ -99,3 +101,13 @@ export default ((userOpts?: NavigationOptions) => {
   Navigation.afterDOMLoaded = script as string;
   return Navigation;
 }) satisfies QuartzComponentConstructor<NavigationOptions>;
+
+/** `props.ctx.argv.directory`: Quartz passes the build context, typed `unknown` for plugins. */
+function contentDirOf(props: QuartzComponentProps): string | undefined {
+  const ctx = (props as { ctx?: unknown }).ctx;
+  if (ctx === null || typeof ctx !== "object") return undefined;
+  const argv = (ctx as { argv?: unknown }).argv;
+  if (argv === null || typeof argv !== "object") return undefined;
+  const dir = (argv as { directory?: unknown }).directory;
+  return typeof dir === "string" && dir ? dir : undefined;
+}

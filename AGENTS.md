@@ -17,7 +17,9 @@ See `ARCHITECTURE.md` for the lifecycle and file map, `README.md` for user-facin
 - `src/components/styles/navigations.scss`: the single stylesheet; every tunable value is a
   `--quartz-nav-*` custom property (document new ones in both READMEs); keep the breakpoint
   placeholders `__NAV_BP_MOBILE__` / `__NAV_BP_DESKTOP__` in media queries.
-- `src/icons.tsx`: Lucide lookup and inline SVG rendering.
+- `src/icons.tsx`: Lucide lookup and inline SVG rendering; `SvgFileIcon` for files.
+- `src/svg-icons.ts` (path checks, reading, cache) and `src/svg-sanitize.ts` (allow list copied
+  from QuartzControl's `src/utils/inlineSvg.ts`; keep the copied section unchanged).
 - `src/breakpoints.ts`: reads the site's breakpoints (`.quartz-gui/layout-breakpoints.json`, else
   `quartz/styles/variables.scss`).
 - `src/scripts/navigations.inline.ts`: browser script; `src/scripts/rail-restore.inline.ts`: the

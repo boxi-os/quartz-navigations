@@ -20,8 +20,8 @@ Instanz wählt eigene Ebenen, Sortierung und Darstellung.
 - Dezente Animationen beim Öffnen von Ordnern, Panels und Off-Canvas-Menü, aus bei
   `prefers-reduced-motion`
 - Ordner- und Datei-Glyphen an jeder Zeile wie in einem Datei-Explorer, Schriftgröße und
-  -stärke nach Ebene gestaffelt; eigene Icons je Seite über `navIcon: lucide:book-open` oder
-  `nodeIcons` in der Konfiguration; Pfeile, Burger und Pager-Pfeile sind ebenfalls
+  -stärke nach Ebene gestaffelt; eigene Icons je Seite über `navIcon: lucide:book-open`, eine
+  SVG-Datei aus dem Vault (`navIcon: svg:icons/logo.svg`) oder `nodeIcons` in der Konfiguration; Pfeile, Burger und Pager-Pfeile sind ebenfalls
   [Lucide](https://lucide.dev)-Icons
 - Funktioniert ohne JavaScript; das kleine Client-Script ergänzt gemerkten Ordnerzustand,
   Hover-Menüs und die Scroll-Sperre
@@ -95,13 +95,13 @@ Ordner sind also immer verlinkbar. Titel kommen in dieser Reihenfolge aus: dem F
 
 Seiten steuern sich selbst über Frontmatter (Schlüssel konfigurierbar über `frontmatterKeys`):
 
-| Schlüssel    | Wirkung                                                                                                |
-| ------------ | ------------------------------------------------------------------------------------------------------ |
-| `navOrder`   | Zahl für `sort: manual`. Kleiner zuerst. In einer `index.md` sortiert sie den Ordner.                  |
-| `navTitle`   | Titel in der Navigation statt `title`.                                                                 |
-| `navHide`    | `true` blendet die Seite aus; in einer `index.md` den ganzen Ordner.                                   |
-| `navIcon`    | Icon vor dem Titel: `lucide:<name>`, kurzer Text, Emoji oder `none` (siehe Icons).                     |
-| `navDivider` | `true` zeichnet eine Trennlinie vor der Seite; in einer `index.md` vor dem Ordner (siehe Trennlinien). |
+| Schlüssel    | Wirkung                                                                                                             |
+| ------------ | ------------------------------------------------------------------------------------------------------------------- |
+| `navOrder`   | Zahl für `sort: manual`. Kleiner zuerst. In einer `index.md` sortiert sie den Ordner.                               |
+| `navTitle`   | Titel in der Navigation statt `title`.                                                                              |
+| `navHide`    | `true` blendet die Seite aus; in einer `index.md` den ganzen Ordner.                                                |
+| `navIcon`    | Icon vor dem Titel: `lucide:<name>`, `svg:<pfad>`, `svg-mono:<pfad>`, kurzer Text, Emoji oder `none` (siehe Icons). |
+| `navDivider` | `true` zeichnet eine Trennlinie vor der Seite; in einer `index.md` vor dem Ordner (siehe Trennlinien).              |
 
 Standardmäßig ausgeblendet: der Ordner `tags`, `unlisted`-Seiten, Entwürfe und die 404-Seite.
 
@@ -120,7 +120,7 @@ Standardmäßig ausgeblendet: der Ordner `tags`, `unlisted`-Seiten, Entwürfe un
 | `chevrons`             | `boolean`                                                                                                                    | `true`                                                                                                                   | Pfeile an aufklappbaren Ordnern. Bei `folderClick: link` ist der Pfeil der Aufklapp-Button und immer sichtbar.                                                                                                                                                                |
 | `icons`                | `"none" \| "type" \| "custom" \| "both"`                                                                                     | `"both"`                                                                                                                 | `type`: Ordner- und Datei-Glyphen. `custom`: `navIcon` / `nodeIcons`. `both`: eigenes Icon wo gesetzt, sonst Glyphe. `true` / `false` bedeuten `both` / `none`.                                                                                                               |
 | `iconNames`            | `{ folder, folderOpen, file, home, chevron, menu, close, pin, unpin, previous, next }`                                       | `folder`, `folder-open`, `file`, `house`, `chevron-down`, `menu`, `x`, `pin`, `pin-off`, `chevron-left`, `chevron-right` | Lucide-Icons für die eigenen Symbole des Plugins.                                                                                                                                                                                                                             |
-| `nodeIcons`            | `Record<string, string>`                                                                                                     | `{}`                                                                                                                     | Icons je Pfad, z. B. `{ docs: "lucide:book-open", "docs/api": "🧩" }`; gleiche Syntax wie `navIcon`. Frontmatter gewinnt.                                                                                                                                                     |
+| `nodeIcons`            | `Record<string, string>`                                                                                                     | `{}`                                                                                                                     | Icons je Pfad, z. B. `{ docs: "lucide:book-open", "docs/api": "🧩", blog: "svg:icons/blog.svg" }`; gleiche Syntax wie `navIcon`. Frontmatter gewinnt.                                                                                                                         |
 | `dividers`             | `string[]`                                                                                                                   | `[]`                                                                                                                     | Pfade von Seiten und Ordnern, vor denen eine Trennlinie steht, z. B. `["blog", "about"]`; dasselbe wie `navDivider: true` (siehe Trennlinien).                                                                                                                                |
 | `rootPath`             | `string`                                                                                                                     | `""` (Site-Wurzel)                                                                                                       | Ordner, an dem die Navigation beginnt, z. B. `docs` oder `de`.                                                                                                                                                                                                                |
 | `scope`                | `"root" \| "section" \| "parent" \| "current"`                                                                               | `"root"`                                                                                                                 | `root`: Kinder von `rootPath`. `section`: der Top-Level-Ordner der aktuellen Seite. `parent`: der Ordner, der die aktuelle Seite enthält (auf der Indexseite von `rootPath` dieser selbst). `current`: der aktuelle Ordner.                                                   |
@@ -373,6 +373,38 @@ installieren; ein unbekannter Name gibt eine Build-Warnung aus und rendert nicht
 Symbole des Plugins lassen sich über `iconNames` tauschen.
 
 Lucide steht unter der ISC-Lizenz (siehe `node_modules/lucide-static/LICENSE`).
+
+#### Eigene SVG-Dateien
+
+`svg:<pfad>` und `svg-mono:<pfad>` zeichnen eine SVG-Datei aus dem Content-Ordner inline, in
+derselben Größe und an derselben Stelle wie ein Lucide-Icon (`svg.quartz-nav__icon.quartz-nav__icon--svg`):
+
+```yaml
+nodeIcons:
+  docs: svg:icons/buch.svg # Farben wie gezeichnet
+  blog: svg-mono:icons/feder.svg # einfarbig, folgt der Navigation
+```
+
+- **`svg:`** behält die Farben der Datei. Eine Form ohne eigene Füllung ist schwarz, wie in einem
+  Bildbetrachter; wo die Datei `currentColor` nutzt, folgt sie der Farbe der Navigation.
+- **`svg-mono:`** macht jede Füllung, Kontur und jeden Verlaufspunkt zu `currentColor`: Das Icon
+  ist gedämpft wie ein Lucide-Icon und nimmt die Farbe der aktuellen Seite an. Für Icons, die in
+  einer Farbe gezeichnet sind.
+- **Pfad**: relativ zum Content-Ordner, mit `/`. Absolute Pfade, `.`- und `..`-Segmente und
+  Symlinks, die aus dem Content-Ordner führen, werden abgelehnt; die Datei endet auf `.svg` und ist
+  höchstens 50 KB groß (sie steht in jeder Seite).
+- **Was bleibt**: Die Datei wird nach einer Positivliste neu aufgebaut, derselben wie QuartzHubs
+  „Bild einfügen“ für Layout-Boxen: nur SVG-Elemente und schlichte Attribute. Entfernt werden
+  Skripte, Event-Handler, `<style>` (dort gesetzte Farben gehen verloren, also mit
+  Präsentationsattributen statt internem CSS exportieren), `foreignObject`, Links (`<a>` behält seine Zeichnung), `<title>`/`<desc>` (das
+  Icon ist Schmuck), alles, was von außen lädt (`https:`-Bilder, `url()` außerhalb der Datei), und
+  DOCTYPE-Entities (so eine Datei wird abgelehnt). Ids bekommen je Zeichnung ein Präfix, damit zwei
+  Icons mit denselben Ids keinen Verlauf teilen. Der Build sagt je Datei einmal, was er entfernt hat.
+- `width`/`height` weichen der Größe der Navigation; die `viewBox` bleibt (fehlt sie, wird sie aus
+  `width` und `height` in Pixeln gebildet).
+- Eine Datei, die nicht taugt (fehlt, zu groß, kein SVG), gibt eine Build-Warnung aus und zeichnet
+  kein Icon; in der Rail-Leiste steht dann das Monogramm.
+- `quartz build --serve` bemerkt eine geänderte SVG nicht von selbst: zum Ansehen neu starten.
 
 ### Schriftstaffelung nach Ebene
 

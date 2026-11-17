@@ -55,8 +55,12 @@ Run tests matching a name: `npx vitest run -t "accordion"`
   `src/breakpoints.ts` with the values from the site's `.quartz-gui/layout-breakpoints.json` (QuartzControl, now QuartzHub
   frames) or `quartz/styles/variables.scss` (Quartz 5
   has no config option for breakpoints).
+- `src/svg-icons.ts` / `src/svg-sanitize.ts` — own SVG icons (`svg:<path>`, `svg-mono:<path>`):
+  path checked inside the content folder (`ctx.argv.directory`), file read (≤ 50 KB, cached by
+  mtime) and rebuilt from QuartzControl's allow list (parsed with `@xmldom/xmldom`, bundled like
+  `lucide-static`); `withInstance` gives each drawing its own ids. Plan: `docs/plan-svg-icons.md`.
 - `src/icons.tsx` — Lucide icons: `navIcon: lucide:<name>` and the plugin's own symbols
-  (`iconNames`). The icon table comes from the virtual module `virtual:lucide-nodes`
+  (`iconNames`); `SvgFileIcon` draws a file icon. The icon table comes from the virtual module `virtual:lucide-nodes`
   (`lucide-static/icon-nodes.json` as a compact JSON string, loaders in `tsup.config.ts` and
   `vitest.config.ts`, type in `types/globals.d.ts`), parsed on first use.
 - `src/scripts/navigations.inline.ts` — browser script (persistence, popup closing, hover,

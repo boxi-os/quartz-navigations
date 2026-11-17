@@ -21,8 +21,8 @@ Each instance picks its own levels, sorting and presentation.
 - Subtle animations for opening folders, panels and the off-canvas menu, off with
   `prefers-reduced-motion`
 - Folder and file glyphs on every row like a file explorer, with sizes and weights stepping
-  down by level; per-page icons via `navIcon: lucide:book-open` or `nodeIcons` in the config;
-  chevrons, burger and pager arrows are [Lucide](https://lucide.dev) icons too
+  down by level; per-page icons via `navIcon: lucide:book-open`, an SVG file from the vault
+  (`navIcon: svg:icons/logo.svg`) or `nodeIcons` in the config; chevrons, burger and pager arrows are [Lucide](https://lucide.dev) icons too
 - Works without JavaScript; the small client script adds remembered folder state, hover menus
   and the scroll lock
 - Multilingual sites with quartz-multilanguage: one navigation per page language, whichever way
@@ -95,13 +95,13 @@ page title, the real directory or file name, the slug segment.
 
 Pages control themselves through frontmatter (keys configurable via `frontmatterKeys`):
 
-| Key          | Effect                                                                                  |
-| ------------ | --------------------------------------------------------------------------------------- |
-| `navOrder`   | Number used by `sort: manual`. Lower first. On an `index.md` it orders the folder.      |
-| `navTitle`   | Title shown in the navigation instead of `title`.                                       |
-| `navHide`    | `true` hides the page; on an `index.md` it hides the whole folder.                      |
-| `navIcon`    | Icon before the title: `lucide:<name>`, short text, an emoji, or `none` (see Icons).    |
-| `navDivider` | `true` draws a line before the page; on an `index.md` before the folder (see Dividers). |
+| Key          | Effect                                                                                                                |
+| ------------ | --------------------------------------------------------------------------------------------------------------------- |
+| `navOrder`   | Number used by `sort: manual`. Lower first. On an `index.md` it orders the folder.                                    |
+| `navTitle`   | Title shown in the navigation instead of `title`.                                                                     |
+| `navHide`    | `true` hides the page; on an `index.md` it hides the whole folder.                                                    |
+| `navIcon`    | Icon before the title: `lucide:<name>`, `svg:<path>`, `svg-mono:<path>`, short text, an emoji, or `none` (see Icons). |
+| `navDivider` | `true` draws a line before the page; on an `index.md` before the folder (see Dividers).                               |
 
 Hidden by default: the `tags` folder, `unlisted` pages, drafts and the 404 page.
 
@@ -120,7 +120,7 @@ Hidden by default: the `tags` folder, `unlisted` pages, drafts and the 404 page.
 | `chevrons`             | `boolean`                                                                                                                    | `true`                                                                                                                   | Chevrons on collapsible folders. With `folderClick: link` the chevron is the toggle button and always shown.                                                                                                                                             |
 | `icons`                | `"none" \| "type" \| "custom" \| "both"`                                                                                     | `"both"`                                                                                                                 | `type`: folder and file glyphs. `custom`: `navIcon` / `nodeIcons`. `both`: custom where set, glyph elsewhere. `true` / `false` mean `both` / `none`.                                                                                                     |
 | `iconNames`            | `{ folder, folderOpen, file, home, chevron, menu, close, pin, unpin, previous, next }`                                       | `folder`, `folder-open`, `file`, `house`, `chevron-down`, `menu`, `x`, `pin`, `pin-off`, `chevron-left`, `chevron-right` | Lucide icons for the plugin's own symbols.                                                                                                                                                                                                               |
-| `nodeIcons`            | `Record<string, string>`                                                                                                     | `{}`                                                                                                                     | Icons per path, e.g. `{ docs: "lucide:book-open", "docs/api": "🧩" }`; same syntax as `navIcon`. Frontmatter wins.                                                                                                                                       |
+| `nodeIcons`            | `Record<string, string>`                                                                                                     | `{}`                                                                                                                     | Icons per path, e.g. `{ docs: "lucide:book-open", "docs/api": "🧩", blog: "svg:icons/blog.svg" }`; same syntax as `navIcon`. Frontmatter wins.                                                                                                           |
 | `dividers`             | `string[]`                                                                                                                   | `[]`                                                                                                                     | Paths of pages and folders with a line before them, e.g. `["blog", "about"]`; the same as `navDivider: true` (see Dividers).                                                                                                                             |
 | `rootPath`             | `string`                                                                                                                     | `""` (site root)                                                                                                         | Folder the navigation starts at, e.g. `docs` or `de`.                                                                                                                                                                                                    |
 | `scope`                | `"root" \| "section" \| "parent" \| "current"`                                                                               | `"root"`                                                                                                                 | `root`: children of `rootPath`. `section`: the top-level folder of the current page. `parent`: the folder containing the current page (`rootPath` itself on its index page). `current`: the current folder.                                              |
@@ -364,6 +364,38 @@ table ships with the plugin, nothing to install in the site; an unknown name log
 warning and renders nothing. The plugin's own symbols can be swapped through `iconNames`.
 
 Lucide is released under the ISC license (see `node_modules/lucide-static/LICENSE`).
+
+#### Own SVG files
+
+`svg:<path>` and `svg-mono:<path>` draw an SVG file from the content folder inline, at the same
+size and in the same place as a Lucide icon (`svg.quartz-nav__icon.quartz-nav__icon--svg`):
+
+```yaml
+nodeIcons:
+  docs: svg:icons/book.svg # colours as drawn
+  blog: svg-mono:icons/pen.svg # one colour, follows the navigation
+```
+
+- **`svg:`** keeps the file's colours. A shape without a fill of its own is black, as in an image
+  viewer; where the file uses `currentColor` it follows the navigation's colour.
+- **`svg-mono:`** turns every fill, stroke and gradient stop into `currentColor`, so the icon is
+  muted like a Lucide icon and takes the current page's colour. For icons drawn in one colour.
+- **Path**: relative to the content folder, with `/`. Absolute paths, `.` and `..` segments and
+  symlinks that lead out of the content folder are refused; the file must end in `.svg` and be at
+  most 50 KB (it is part of every page).
+- **What is kept**: the file is rebuilt from an allow list, the same as QuartzHub's "Insert image"
+  for layout boxes: SVG elements and plain attributes only. Removed are scripts, event handlers,
+  `<style>` (colours set there are lost, so export with presentation attributes; Illustrator calls
+  it "Presentation Attributes" instead of "Internal CSS"), `foreignObject`, links (`<a>` keeps its
+  drawing), `<title>`/`<desc>` (the icon is decorative), anything that loads from outside
+  (`https:` pictures, `url()` outside the file) and DOCTYPE entities (such a file is refused). Ids
+  get a prefix per drawing, so two icons with the same ids do not share a gradient. The build
+  says once per file what it removed.
+- `width`/`height` give way to the navigation's size; the `viewBox` stays (made from `width` and
+  `height` in pixels if missing).
+- A file that cannot be used (missing, too large, not an SVG) logs one build warning and draws no
+  icon; in the rail strip the monogram stands in.
+- `quartz build --serve` does not notice a changed SVG on its own: restart it to see the change.
 
 ### Type scale by level
 

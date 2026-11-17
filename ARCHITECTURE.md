@@ -55,6 +55,13 @@ component.
 - Icons (`src/icons.tsx`): `navIcon` values starting with `lucide:` and the plugin's own symbols
   (`iconNames`) resolve against Lucide's icon table, imported as the virtual module
   `virtual:lucide-nodes` (a compact JSON string, parsed lazily) and rendered as inline SVG.
+  Values starting with `svg:` / `svg-mono:` name an SVG file in the content folder
+  (`props.ctx.argv.directory`): `svg-icons.ts` checks the path (no way out of the folder, symlinks
+  followed), reads at most 50 KB and caches by mtime; `svg-sanitize.ts` rebuilds the file from
+  QuartzControl's allow list as a node tree (no markup passes through) and `SvgFileIcon` draws it
+  with `h()`, each drawing with its own ids (`withInstance`, counter in the render context). The
+  render code calls `SvgFileIcon` instead of mounting it, so a failed file yields `null` and the
+  rail strip falls back to the monogram.
 
 ## Build System
 
@@ -62,7 +69,7 @@ component.
 splitting, so the shared code (including the ~360 KB Lucide table) is emitted once as a chunk.
 Left external are only the singletons that must resolve to the host's instance: `preact`, `vfile`
 and `@jackyzha0/quartz`. Everything else is inlined — `@quartz-community/utils` (with its
-`github-slugger`), `lucide-static` — because Quartz never installs a pre-built plugin's
+`github-slugger`), `lucide-static`, `@xmldom/xmldom` (about 240 KB of the chunk) — because Quartz never installs a pre-built plugin's
 `dependencies`, only its `peerDependencies`; `@quartz-community/*` are listed as `dependencies`
 and forced into the bundle by `noExternal`, other runtime packages live in `devDependencies`. `.scss` imports compile to CSS strings (the breakpoint placeholders survive
 compilation and are replaced at construction time), `.inline.ts` imports bundle to browser JS
@@ -81,7 +88,10 @@ compact JSON string. `vitest.config.ts` provides the same loaders for tests. `di
   - `scope.ts`: `resolveScope()`, `chainOf()`, `flatten()`, `pagerNeighbours()`, `pathOfSlug()`.
   - `language.ts`: `languageIndex()`, `placements()`, `languageOfPage()`, `localeFor()`.
   - `links.ts`: `hrefFor()`, `linkTarget()`, `firstPage()`.
-  - `icons.tsx`: `LucideIcon`, `lucideName()`, `hasLucideIcon()`, `lucideIconNames()`.
+  - `icons.tsx`: `LucideIcon`, `lucideName()`, `hasLucideIcon()`, `lucideIconNames()`,
+    `SvgFileIcon`.
+  - `svg-icons.ts`: `svgIconRef()`, `resolveSvgPath()`, `readSvgIcon()` (own SVG files).
+    `svg-sanitize.ts`: `sanitizeSvg()` (allow list from QuartzControl, xmldom), `withInstance()`.
   - `breakpoints.ts`: `parseBreakpoints()`, `resolveBreakpoints()`, `applyBreakpoints()`.
   - `components/Navigation.tsx`: constructor. `components/render.tsx`: markup per variant.
   - `components/styles/navigations.scss`: the single stylesheet (custom properties, layout per

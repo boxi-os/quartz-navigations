@@ -67,6 +67,7 @@
     "@types/node": "^24.10.0",
     "@typescript-eslint/eslint-plugin": "^7.18.0",
     "@typescript-eslint/parser": "^7.18.0",
+    "@xmldom/xmldom": "^0.9.12",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^9.1.0",
     "github-slugger": "^2.0.0",
@@ -502,12 +503,12 @@
           "additionalProperties": {
             "type": "string"
           },
-          "description": "Icons per path from the site config, e.g. `{ docs: \"lucide:book-open\", \"docs/api\": \"🧩\" }`. Same syntax as `navIcon` (`lucide:<name>`, text, emoji, or `none`); frontmatter wins.",
+          "description": "Icons per path from the site config, e.g. `{ docs: \"lucide:book-open\", \"docs/api\": \"🧩\" }`. Same syntax as `navIcon` (`lucide:<name>`, `svg:<path>` or `svg-mono:<path>` for an SVG file in the content folder, text, emoji, or `none`); frontmatter wins.",
           "x-quartz-group": "Labels and icons",
           "x-quartz-order": 520,
           "x-quartz-l10n": {
             "de": {
-              "description": "Icons je Pfad, z. B. `{ docs: \"lucide:book-open\", \"docs/api\": \"🧩\" }`; gleiche Syntax wie `navIcon`. Frontmatter gewinnt.",
+              "description": "Icons je Pfad, z. B. `{ docs: \"lucide:book-open\", \"docs/api\": \"🧩\" }`; gleiche Syntax wie `navIcon` (`svg:<pfad>` oder `svg-mono:<pfad>` für eine SVG-Datei im Content-Ordner). Frontmatter gewinnt.",
               "group": "Beschriftung und Symbole"
             }
           }
@@ -783,10 +784,10 @@
             },
             "icon": {
               "type": "string",
-              "description": "Icon rendered before the title when `icons` is on: short text, an emoji or a Lucide icon as `lucide:<name>` (e.g. `lucide:book-open`). Defaults to `navIcon`.",
+              "description": "Icon rendered before the title when `icons` is on: short text, an emoji, a Lucide icon as `lucide:<name>` (e.g. `lucide:book-open`) or an SVG file from the content folder as `svg:<path>` / `svg-mono:<path>`. Defaults to `navIcon`.",
               "x-quartz-l10n": {
                 "de": {
-                  "description": "Symbol vor dem Titel, wenn `icons` es zeigt: kurzer Text, ein Emoji oder ein Lucide-Icon als `lucide:<name>`. Standard: `navIcon`."
+                  "description": "Symbol vor dem Titel, wenn `icons` es zeigt: kurzer Text, ein Emoji, ein Lucide-Icon als `lucide:<name>` oder eine SVG-Datei aus dem Content-Ordner als `svg:<pfad>` / `svg-mono:<pfad>`. Standard: `navIcon`."
                 }
               }
             },
