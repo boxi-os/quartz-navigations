@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-11-17
+
 ### Changed
 
 - Lucide icons updated from lucide-static 1.45.0 to 1.74.0: 2089 icons (before 1834). Lucide
