@@ -61,8 +61,10 @@ Run tests matching a name: `npx vitest run -t "accordion"`
   `lucide-static`); `withInstance` gives each drawing its own ids. Plan: `docs/plan-svg-icons.md`.
 - `src/icons.tsx` — Lucide icons: `navIcon: lucide:<name>` and the plugin's own symbols
   (`iconNames`); `SvgFileIcon` draws a file icon. The icon table comes from the virtual module `virtual:lucide-nodes`
-  (`lucide-static/icon-nodes.json` as a compact JSON string, loaders in `tsup.config.ts` and
-  `vitest.config.ts`, type in `types/globals.d.ts`), parsed on first use.
+  (`lucide-static/icon-nodes.json` plus the former names of renamed icons, made by
+  `src/build/lucide-table.ts` as a compact JSON string, loaders in `tsup.config.ts` and
+  `vitest.config.ts`, type in `types/globals.d.ts`), parsed on first use. Updating lucide-static:
+  every name of the previous `dist/` must still draw (lucide-static 1.74 renamed 42 of 1.45's).
 - `src/scripts/navigations.inline.ts` — browser script (persistence, popup closing, hover,
   off-canvas scroll lock, select navigation, rail). Must stay a script (no `export`).
 - `src/scripts/rail-restore.inline.ts` — `beforeDOMLoaded` script (Quartz's prescript, in

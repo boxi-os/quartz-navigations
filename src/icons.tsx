@@ -9,11 +9,21 @@ import { warnOnce } from "./util/warn";
 
 type IconNode = [tag: string, attrs: Record<string, string>][];
 
-let table: Record<string, IconNode> | undefined;
+/** An icon's nodes, or for a former name the name of the icon it became. */
+let table: Record<string, IconNode | string> | undefined;
 
-function icons(): Record<string, IconNode> {
-  if (!table) table = JSON.parse(raw) as Record<string, IconNode>;
+function icons(): Record<string, IconNode | string> {
+  if (!table) table = JSON.parse(raw) as Record<string, IconNode | string>;
   return table;
+}
+
+/** The nodes of an icon by its name or a former name (`triangle-alert` → `triangle-exclamation-point`). */
+function nodesOf(name: string): IconNode | undefined {
+  const all = icons();
+  if (!Object.prototype.hasOwnProperty.call(all, name)) return undefined;
+  const entry = all[name];
+  const target = typeof entry === "string" ? all[entry] : entry;
+  return Array.isArray(target) ? target : undefined;
 }
 
 export const LUCIDE_PREFIX = "lucide:";
@@ -25,7 +35,7 @@ export function lucideName(value: string | undefined): string | undefined {
 }
 
 export function hasLucideIcon(name: string): boolean {
-  return Object.prototype.hasOwnProperty.call(icons(), name);
+  return nodesOf(name) !== undefined;
 }
 
 export function lucideIconNames(): string[] {
@@ -41,7 +51,7 @@ export interface LucideIconProps {
 
 /** Inline SVG of a Lucide icon, or nothing (with one warning) for an unknown name. */
 export function LucideIcon({ name, className, size = "1em" }: LucideIconProps) {
-  const node = icons()[name];
+  const node = nodesOf(name);
   if (!node) {
     warnOnce(`lucide:${name}`, `Unknown Lucide icon \`${name}\`; see https://lucide.dev/icons`);
     return null;

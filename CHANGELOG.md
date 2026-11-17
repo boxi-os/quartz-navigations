@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Lucide icons updated from lucide-static 1.45.0 to 1.74.0: 2089 icons (before 1834). Lucide
+  renamed 42 icons since (`triangle-alert` is `triangle-exclamation-point`, `music` is
+  `eighth-notes`, …); the former names keep working, the table now carries all 312 of them as
+  pointers to their new icon, so `navIcon: lucide:triangle-alert` still draws.
+
 ## [0.6.0] - 2026-11-17
 
 ### Added

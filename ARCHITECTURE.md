@@ -73,8 +73,10 @@ and `@jackyzha0/quartz`. Everything else is inlined — `@quartz-community/utils
 `dependencies`, only its `peerDependencies`; `@quartz-community/*` are listed as `dependencies`
 and forced into the bundle by `noExternal`, other runtime packages live in `devDependencies`. `.scss` imports compile to CSS strings (the breakpoint placeholders survive
 compilation and are replaced at construction time), `.inline.ts` imports bundle to browser JS
-strings, `virtual:lucide-nodes` resolves to `node_modules/lucide-static/icon-nodes.json` as a
-compact JSON string. `vitest.config.ts` provides the same loaders for tests. `dist/` is committed.
+strings, `virtual:lucide-nodes` resolves to the table `src/build/lucide-table.ts` makes from
+`node_modules/lucide-static` (`icon-nodes.json` plus every former name in `icons/` as a pointer to
+the icon it became, matched by drawing; a match that fails stops the build) as a compact JSON
+string. `vitest.config.ts` provides the same loaders for tests. `dist/` is committed.
 
 ## Directory Structure
 

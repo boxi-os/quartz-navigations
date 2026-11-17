@@ -72,7 +72,7 @@
     "eslint-config-prettier": "^9.1.0",
     "github-slugger": "^2.0.0",
     "jsdom": "^25.0.1",
-    "lucide-static": "^1.45.0",
+    "lucide-static": "^1.74.0",
     "preact": "^10.28.2",
     "prettier": "^3.6.2",
     "sass": "^1.97.3",

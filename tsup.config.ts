@@ -1,6 +1,7 @@
 import { defineConfig } from "tsup";
 import type { Plugin } from "esbuild";
 import path from "path";
+import { lucideTableJson } from "./src/build/lucide-table";
 import { validateManifest } from "./src/build/validate-manifest";
 
 validateManifest();
@@ -31,7 +32,8 @@ const inlineScriptPlugin: Plugin = {
       return { contents: result.css, loader: "text" };
     });
 
-    // Lucide's icon table (2000+ icons) is inlined as one compact JSON string instead of a
+    // Lucide's icon table (2000+ icons, plus the former names of renamed ones, see
+    // src/build/lucide-table.ts) is inlined as one compact JSON string instead of a
     // pretty-printed object literal, which keeps dist/ small and defers parsing to first use.
     // The module path stays relative on purpose: esbuild writes it into the bundle (module
     // comment and sourcemap), and an absolute path would make the chunk hash differ per machine.
@@ -40,10 +42,8 @@ const inlineScriptPlugin: Plugin = {
       namespace: "lucide-nodes",
     }));
     parentBuild.onLoad({ filter: /.*/, namespace: "lucide-nodes" }, async (args) => {
-      const fs = await import("fs");
-      const file = path.resolve(absWorkingDir, "node_modules", args.path);
-      const text = await fs.promises.readFile(file, "utf8");
-      return { contents: JSON.stringify(JSON.parse(text)), loader: "text" };
+      const packageDir = path.dirname(path.resolve(absWorkingDir, "node_modules", args.path));
+      return { contents: lucideTableJson(packageDir), loader: "text" };
     });
 
     // Inline TypeScript files are transpiled + bundled for the browser

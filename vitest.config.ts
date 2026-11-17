@@ -1,8 +1,9 @@
 import fs from "node:fs";
 import path from "node:path";
 import { defineConfig, type Plugin } from "vitest/config";
+import { lucideTableJson } from "./src/build/lucide-table";
 
-const LUCIDE_NODES = path.resolve(__dirname, "node_modules/lucide-static/icon-nodes.json");
+const LUCIDE_PACKAGE = path.resolve(__dirname, "node_modules/lucide-static");
 
 /**
  * Mirrors the tsup loaders: `.inline.ts` and `.scss` imports resolve to strings in the
@@ -17,8 +18,7 @@ const stringImports: Plugin = {
   },
   load(id) {
     if (id === "\0virtual:lucide-nodes") {
-      const text = JSON.stringify(JSON.parse(fs.readFileSync(LUCIDE_NODES, "utf8")));
-      return { code: `export default ${JSON.stringify(text)};` };
+      return { code: `export default ${JSON.stringify(lucideTableJson(LUCIDE_PACKAGE))};` };
     }
     if (/\.inline\.ts$/.test(id) || /\.scss$/.test(id)) {
       return { code: `export default ${JSON.stringify(fs.readFileSync(id, "utf8"))};` };

@@ -19,7 +19,7 @@ describe("lucide icons", () => {
   });
 
   it("ships the full icon table", () => {
-    expect(lucideIconNames().length).toBeGreaterThan(1500);
+    expect(lucideIconNames().length).toBeGreaterThan(2300);
     expect(hasLucideIcon("chevron-down")).toBe(true);
     expect(hasLucideIcon("menu")).toBe(true);
     expect(hasLucideIcon("x")).toBe(true);
@@ -37,6 +37,32 @@ describe("lucide icons", () => {
     const children = svg.props.children as { type: string; props: Record<string, string> }[];
     expect(children[0]!.type).toBe("path");
     expect(children[0]!.props.d).toBe("m6 9 6 6 6-6");
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("keeps the former names of renamed icons (lucide-static 1.74 renamed 42 of 1.45's)", () => {
+    // Former names drawn by their new icon; none of them is in icon-nodes.json any more.
+    const renamed: Record<string, string> = {
+      "triangle-alert": "triangle-exclamation-point",
+      "circle-alert": "circle-exclamation-point",
+      music: "eighth-notes",
+      bold: "letter-b",
+      heading: "letter-h",
+    };
+    for (const [old, now] of Object.entries(renamed)) {
+      expect(hasLucideIcon(old)).toBe(true);
+      const a = LucideIcon({ name: old })!;
+      const b = LucideIcon({ name: now })!;
+      expect(a.props.class).toBe(`lucide lucide-${old}`);
+      const drawing = (v: typeof a) =>
+        (v.props.children as { type: string; props: Record<string, string> }[]).map((c) => [
+          c.type,
+          c.props,
+        ]);
+      expect(drawing(a).length).toBeGreaterThan(0);
+      expect(drawing(a)).toEqual(drawing(b));
+    }
+    expect(lucideIconNames()).toContain("triangle-alert");
     expect(warn).not.toHaveBeenCalled();
   });
 
