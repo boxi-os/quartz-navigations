@@ -120,6 +120,8 @@ html.quartz-nav-rail-instant {
   // the sticky or fixed bar the navigation sits in (measured by the client script).
   --quartz-nav-rail-width: 3.5rem;
   --quartz-nav-rail-open-width: min(20rem, 100vw);
+  // Room between a pushing rail and the page; part of `--quartz-nav-rail-offset-*`.
+  --quartz-nav-rail-gap: 0px;
   --quartz-nav-rail-icon-size: 1.4rem;
   --quartz-nav-rail-row-height: 2.75rem;
   --quartz-nav-rail-z: 100;

@@ -14,14 +14,15 @@
  * no-animation flag.
  *
  * Storage, written by the main script: `quartz-nav:<id>:rail-pinned` / `rail-carry` /
- * `rail-strip` hold `{ side, px, bp }` (pushed width and mobile breakpoint, in pixels),
+ * `rail-strip` hold `{ side, px, bp, over? }` (pushed width and mobile breakpoint, in pixels;
+ * `over` when the open menu lies over the page while the strip under it still pushes),
  * `quartz-nav:<id>:rail-top` the panel's last top edge.
  *
  * A plain script, wrapped so that nothing leaks into the global scope of the classic <script>.
  */
 (() => {
   type Side = "left" | "right";
-  type Restore = { side: Side; px: number; bp: number };
+  type Restore = { side: Side; px: number; bp: number; over?: boolean };
   type Kind = "pinned" | "carry" | "strip";
   const STYLE_ID = "quartz-nav-rail-restore";
   const KEY = /^quartz-nav:(.+):rail-(pinned|carry|strip|top)$/;
@@ -67,7 +68,7 @@
         if (!valid(r)) continue;
         const known = shown.get(id);
         if (!known || (known.kind === "strip" && kind !== "strip")) {
-          shown.set(id, { side: r.side, px: r.px, bp: r.bp, kind });
+          shown.set(id, { side: r.side, px: r.px, bp: r.bp, over: r.over === true, kind });
         }
       }
     };
@@ -108,10 +109,12 @@
         }
       }
       const other = r.side === "left" ? pushed.right : pushed.left;
-      if (r.px > 0 && width - other - r.px > r.bp) {
+      const pushes = r.px > 0 && width - other - r.px > r.bp;
+      if (pushes) {
         pushed[r.side] = Math.max(pushed[r.side], r.px);
         rules.push(`body:has(${nav}){padding-${r.side}:${r.px}px}`);
-      } else if (r.kind !== "strip") {
+      }
+      if (r.kind !== "strip" && (!pushes || r.over)) {
         rules.push(`${nav}>.quartz-nav__panel{box-shadow:var(--quartz-nav-shadow)}`);
       }
     }

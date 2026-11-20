@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `--quartz-nav-rail-gap` (default `0px`): room between a pushing rail and the page. It counts
+  into `--quartz-nav-rail-offset-left|right`, so a full-width header that pulls itself back by the
+  offset still reaches the window edge.
+
+### Fixed
+
+- Rail: with `rest: icons` and `content: push`, a menu opened with `hoverContent: overlay` or
+  pinned with `pinContent: overlay` dropped the strip's push, and the page slid under the menu by
+  the strip's width. The page now stays beside the strip while the menu lies over it (with its
+  shadow, also in the early `<head>` script).
+
 ## [0.6.1] - 2026-11-17
 
 ### Changed

@@ -247,13 +247,16 @@ visible width: the full menu, or the strip (`rest: icons`, or slid in from the b
 and a menu opened by hover. `overlay` there keeps the page from shifting under a passing pointer
 while a click or the pin still pushes; `same` (default) follows `rail.content`. `rail.pinContent`
 does the same for a pinned menu: with `content: overlay` and `pinContent: push` the menu lies over
-the page until it is pinned and then sits beside it.
+the page until it is pinned and then sits beside it. With `rest: icons` and `content: push` the
+page stays beside the strip while a menu opened with `overlay` lies over it.
 
 Pushing, the client script writes the width to `--quartz-nav-rail-offset-left` (or `-right`) on
 `<html>` and the stylesheet pads `<body>` by it, animated (the property is registered with
-`@property`). Anything the site lays out across the full window, such as a header bleeding to both
-edges, can read the same variable. With `overlay` the variable stays `0px` or unset. Rails on the
-same edge overlap, so the page moves by the widest of them.
+`@property`). `--quartz-nav-rail-gap` (default `0px`, set it on `.quartz-nav`) keeps the page that
+much further from the rail and is part of the offset. Anything the site lays out across the full
+window, such as a header bleeding to both edges, can read the same variable. With `overlay` and no
+pushing strip the variable stays `0px` or unset. Rails on the same edge overlap, so the page moves
+by the widest of them.
 
 A header that spans the window should stay where it is while a rail on the left pushes the page,
 since the panel starts below it. Pull it back over the padding:
@@ -442,6 +445,7 @@ so a site's unlayered `quartz/styles/custom.scss` overrides them without any sel
 | `--quartz-nav-offcanvas-width`, `--quartz-nav-offcanvas-padding`, `--quartz-nav-offcanvas-z`                      | `min(20rem, 85vw)`, `1rem`, `100`                         | Off-canvas panel                                                                  |
 | `--quartz-nav-rail-width`, `--quartz-nav-rail-open-width`, `--quartz-nav-rail-z`                                  | `3.5rem`, `min(20rem, 100vw)`, `100`                      | Rail: strip width, width of the full menu, stacking                               |
 | `--quartz-nav-rail-icon-size`, `--quartz-nav-rail-row-height`                                                     | `1.4rem`, `2.75rem`                                       | Rail: icons and monograms in the strip, height of level-1 rows                    |
+| `--quartz-nav-rail-gap`                                                                                           | `0px`                                                     | Rail: room between a pushing rail and the page (part of the offset)               |
 | `--quartz-nav-rail-top`                                                                                           | unset (below the sticky bar)                              | Rail: top edge of the panel                                                       |
 | `--quartz-nav-rail-offset-left`, `--quartz-nav-rail-offset-right`                                                 | set on `<html>` by the script                             | Rail: how far a pushing rail moves the page at that edge (read it, do not set it) |
 | `--quartz-nav-font`, `--quartz-nav-heading-font`                                                                  | `var(--bodyFont)`, `var(--headerFont)`                    | Fonts                                                                             |

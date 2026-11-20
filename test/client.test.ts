@@ -633,6 +633,71 @@ describe("client script", () => {
     expect(root.classList.contains("quartz-nav-rail-left")).toBe(false);
   });
 
+  it("rail: laid over the page, the menu leaves the page beside the pushing strip", async () => {
+    const html = (extra: string) =>
+      `<nav data-quartz-nav="strip" data-variant="rail" data-rail-rest="icons" data-rail-expand="hover" data-rail-content="push" ${extra} data-bp-mobile="800px" class="quartz-nav quartz-nav--rail quartz-nav--rail-icons quartz-nav--rail-left" style="--quartz-nav-rail-open-width: 18rem; --quartz-nav-rail-width: 4rem">
+        <button type="button" class="quartz-nav__rail-trigger" aria-expanded="false"></button>
+        <div class="quartz-nav__panel"><div class="quartz-nav__rail-head"><button type="button" class="quartz-nav__rail-pin" aria-pressed="false"></button></div><ul class="quartz-nav__list" data-level="1"><li><a href="./a">a</a></li></ul></div></nav>`;
+    const root = document.documentElement;
+    const offset = () => root.style.getPropertyValue("--quartz-nav-rail-offset-left");
+
+    // `hoverContent: overlay`: hover opens the menu over the page, which stays beside the strip.
+    mount(html('data-rail-hover-content="overlay"'));
+    await nav();
+    let navEl = document.querySelector<HTMLElement>("nav")!;
+    const panel = navEl.querySelector<HTMLElement>(".quartz-nav__panel")!;
+    expect(offset()).toBe("4rem");
+    panel.dispatchEvent(new MouseEvent("mouseenter"));
+    expect(navEl.dataset.railState).toBe("open");
+    expect(offset()).toBe("4rem");
+    // Over the page, not beside it: the panel keeps its shadow.
+    expect(navEl.dataset.railPushing).toBeUndefined();
+    // A click still pushes by the full menu.
+    document.getElementById("outside")!.click();
+    navEl.querySelector<HTMLButtonElement>(".quartz-nav__rail-trigger")!.click();
+    expect(offset()).toBe("18rem");
+    expect(navEl.dataset.railPushing).toBe("");
+
+    // `pinContent: overlay`: the same for a pinned menu, also in the record for the early script.
+    localStorage.removeItem("quartz-nav:strip:rail-pinned");
+    mount(html('data-rail-pin-content="overlay"'));
+    await nav();
+    navEl = document.querySelector<HTMLElement>("nav")!;
+    navEl.querySelector<HTMLButtonElement>(".quartz-nav__rail-trigger")!.click();
+    navEl.querySelector<HTMLButtonElement>(".quartz-nav__rail-pin")!.click();
+    expect(offset()).toBe("4rem");
+    expect(navEl.dataset.railPushing).toBeUndefined();
+    expect(JSON.parse(localStorage.getItem("quartz-nav:strip:rail-pinned")!)).toMatchObject({
+      side: "left",
+      over: true,
+    });
+    navEl.querySelector<HTMLButtonElement>(".quartz-nav__rail-pin")!.click();
+    localStorage.removeItem("quartz-nav:strip:rail-pinned");
+    localStorage.removeItem("quartz-nav:strip:rail-strip");
+  });
+
+  it("rail: --quartz-nav-rail-gap keeps the page further from a pushing rail", async () => {
+    const html = (gap: string) =>
+      `<nav data-quartz-nav="gap" data-variant="rail" data-rail-rest="icons" data-rail-expand="hover" data-rail-content="push" data-bp-mobile="800px" class="quartz-nav quartz-nav--rail quartz-nav--rail-icons quartz-nav--rail-left" style="--quartz-nav-rail-open-width: 18rem; --quartz-nav-rail-width: 4rem; --quartz-nav-rail-gap: ${gap}">
+        <button type="button" class="quartz-nav__rail-trigger" aria-expanded="false"></button>
+        <div class="quartz-nav__panel"><ul class="quartz-nav__list" data-level="1"><li><a href="./a">a</a></li></ul></div></nav>`;
+    const root = document.documentElement;
+    const offset = () => root.style.getPropertyValue("--quartz-nav-rail-offset-left");
+    mount(html("1rem"));
+    await nav();
+    const navEl = document.querySelector<HTMLElement>("nav")!;
+    expect(offset()).toBe("calc(4rem + 1rem)");
+    navEl
+      .querySelector<HTMLElement>(".quartz-nav__panel")!
+      .dispatchEvent(new MouseEvent("mouseenter"));
+    expect(offset()).toBe("calc(18rem + 1rem)");
+    // The default `0px` adds nothing.
+    mount(html("0px"));
+    await nav();
+    expect(offset()).toBe("4rem");
+    localStorage.removeItem("quartz-nav:gap:rail-strip");
+  });
+
   it("rail: a rail on each side keeps its own offset and push state", async () => {
     mount(
       `<nav data-quartz-nav="l" data-variant="rail" data-rail-rest="hidden" data-rail-expand="click" data-rail-content="push" data-bp-mobile="800px" class="quartz-nav quartz-nav--rail quartz-nav--rail-hidden quartz-nav--rail-left" style="--quartz-nav-rail-open-width: 18rem">

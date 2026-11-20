@@ -110,6 +110,17 @@ describe("rail restore script", () => {
     expect(style()).not.toContain("padding-left:56px");
   });
 
+  it("keeps the shadow of a menu laid over a page that the strip still pushes", () => {
+    localStorage.setItem(
+      "quartz-nav:over:rail-pinned",
+      JSON.stringify({ side: "left", px: 56, bp: 900, over: true }),
+    );
+    run();
+    const nav = 'nav[data-quartz-nav="over"].quartz-nav--rail-left';
+    expect(style()).toContain(`body:has(${nav}){padding-left:56px}`);
+    expect(style()).toContain(`${nav}>.quartz-nav__panel{box-shadow:var(--quartz-nav-shadow)}`);
+  });
+
   it("overlays instead of pushing below the mobile breakpoint, and skips small screens", () => {
     localStorage.setItem(
       "quartz-nav:l:rail-pinned",

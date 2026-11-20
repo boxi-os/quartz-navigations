@@ -253,12 +253,16 @@ und ein per Hover geöffnetes Menü. `overlay` hält die Seite dort ruhig, wenn 
 vorbeizieht, ein Klick oder der Pin schieben trotzdem; `same` (Standard) folgt `rail.content`.
 `rail.pinContent` tut dasselbe für ein angeheftetes Menü: Mit `content: overlay` und
 `pinContent: push` liegt das Menü über der Seite, bis es angeheftet wird, dann sitzt es daneben.
+Mit `rest: icons` und `content: push` bleibt die Seite neben der Leiste, während ein mit `overlay`
+geöffnetes Menü über ihr liegt.
 
 Beim Schieben schreibt das Client-Script die Breite in `--quartz-nav-rail-offset-left` (oder
 `-right`) auf `<html>`, das Stylesheet rückt `<body>` um diesen Wert ein, animiert (die Eigenschaft
-ist per `@property` registriert). Was die Site über das ganze Fenster legt, etwa eine Kopfzeile bis
-an beide Ränder, kann dieselbe Variable lesen. Mit `overlay` bleibt sie `0px` oder ungesetzt.
-Rails am selben Rand überlappen sich, die Seite rückt um die breiteste ein.
+ist per `@property` registriert). `--quartz-nav-rail-gap` (Standard `0px`, an `.quartz-nav` zu
+setzen) hält die Seite so viel weiter von der Rail entfernt und gehört zum Offset. Was die Site über
+das ganze Fenster legt, etwa eine Kopfzeile bis an beide Ränder, kann dieselbe Variable lesen. Mit
+`overlay` und ohne schiebende Leiste bleibt sie `0px` oder ungesetzt. Rails am selben Rand
+überlappen sich, die Seite rückt um die breiteste ein.
 
 Eine Kopfzeile über die ganze Fensterbreite soll stehen bleiben, während eine Rail links die Seite
 schiebt, denn das Panel beginnt unter ihr. Sie holt sich den Einzug zurück:
@@ -452,6 +456,7 @@ die ungeschichtete `quartz/styles/custom.scss` der Site sie ohne Selektor-Gefech
 | `--quartz-nav-offcanvas-width`, `--quartz-nav-offcanvas-padding`, `--quartz-nav-offcanvas-z`                      | `min(20rem, 85vw)`, `1rem`, `100`                          | Off-Canvas-Panel                                                                              |
 | `--quartz-nav-rail-width`, `--quartz-nav-rail-open-width`, `--quartz-nav-rail-z`                                  | `3.5rem`, `min(20rem, 100vw)`, `100`                       | Rail: Breite der Leiste, Breite des ganzen Menüs, Stapelebene                                 |
 | `--quartz-nav-rail-icon-size`, `--quartz-nav-rail-row-height`                                                     | `1.4rem`, `2.75rem`                                        | Rail: Icons und Monogramme in der Leiste, Höhe der Zeilen der ersten Ebene                    |
+| `--quartz-nav-rail-gap`                                                                                           | `0px`                                                      | Rail: Abstand zwischen schiebender Rail und Seite (Teil des Offsets)                          |
 | `--quartz-nav-rail-top`                                                                                           | nicht gesetzt (unter der Sticky-Leiste)                    | Rail: Oberkante des Panels                                                                    |
 | `--quartz-nav-rail-offset-left`, `--quartz-nav-rail-offset-right`                                                 | vom Script auf `<html>` gesetzt                            | Rail: wie weit eine schiebende Rail die Seite an diesem Rand verschiebt (lesen, nicht setzen) |
 | `--quartz-nav-font`, `--quartz-nav-heading-font`                                                                  | `var(--bodyFont)`, `var(--headerFont)`                     | Schriften                                                                                     |

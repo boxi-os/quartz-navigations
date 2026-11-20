@@ -1,5 +1,5 @@
 import { createRequire } from 'module';
-export { Navigation_default as Navigation } from '../chunk-S5SIHUK6.js';
+export { Navigation_default as Navigation } from '../chunk-UEDV4ROK.js';
 
 createRequire(import.meta.url);
 //# sourceMappingURL=index.js.map

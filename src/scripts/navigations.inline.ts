@@ -511,6 +511,7 @@ function setupRail(nav: HTMLElement): void {
   let carryAt = 0;
   // Pixels this rail currently pushes the page by, and the panel's last measured top edge.
   let lastPx = 0;
+  let lastOver = false;
   let lastTop = -1;
   let timer: ReturnType<typeof setTimeout> | undefined;
 
@@ -549,8 +550,14 @@ function setupRail(nav: HTMLElement): void {
   };
   const bpMobile = bpPx(nav.dataset.bpMobile);
   // What the early script in <head> needs to show the menu before this script runs
-  // (rail-restore.inline.ts): edge, pushed width, mobile breakpoint.
-  const restoreRecord = () => ({ side, px: lastPx, bp: Number.isFinite(bpMobile) ? bpMobile : 0 });
+  // (rail-restore.inline.ts): edge, pushed width, mobile breakpoint, and whether the open menu
+  // lies over the page (then it keeps its shadow, although the strip still pushes).
+  const restoreRecord = () => ({
+    side,
+    px: lastPx,
+    bp: Number.isFinite(bpMobile) ? bpMobile : 0,
+    ...(lastOver ? { over: true } : {}),
+  });
   const pxWidth = (name: string): number => {
     const probe = document.createElement("div");
     probe.style.cssText = `position:absolute;visibility:hidden;pointer-events:none;width:var(${name})`;
@@ -567,29 +574,41 @@ function setupRail(nav: HTMLElement): void {
   const cssWidth = (name: string, fallback: string) =>
     getComputedStyle(nav).getPropertyValue(name).trim() || fallback;
   // How far the page moves: the visible width of the panel, when the mode of the way it was
-  // opened is `push`. The push class stays on while the rail can push at all, so that closing
-  // animates back to 0 instead of dropping the padding at once.
+  // opened is `push`. Laid over the page, the menu still leaves the page beside the permanent
+  // strip it covers (`rest: icons` with `content: push`); otherwise the page would slide under a
+  // menu opened by hover by the strip's width. `--quartz-nav-rail-gap` keeps the page that much
+  // further away and counts into the offset, so that whatever reads it moves in step. The push
+  // class stays on while the rail can push at all, so that closing animates back to 0 instead
+  // of dropping the padding at once.
   const applyOffset = () => {
     const desktop = !mobile();
     const viaHover = state === "part" || (state === "open" && byHover);
     const mode = holding() && state === "open" ? pinMode : viaHover ? hoverMode : contentMode;
-    const widthVar =
+    const shownVar =
       state === "open"
         ? "--quartz-nav-rail-open-width"
         : state === "part" || icons
           ? "--quartz-nav-rail-width"
           : "";
-    const pushes = desktop && mode === "push" && widthVar !== "";
-    const px = pushes ? Math.round(pxWidth(widthVar)) : 0;
+    const restVar = icons && contentMode === "push" ? "--quartz-nav-rail-width" : "";
+    const widthVar = mode === "push" ? shownVar : restVar;
+    const pushes = desktop && widthVar !== "";
+    const px = pushes ? Math.round(pxWidth(widthVar) + pxWidth("--quartz-nav-rail-gap")) : 0;
     const on = pushes && keepsView(px);
     lastPx = on ? px : 0;
-    railPushes[side].set(nav, {
-      px: lastPx,
-      css: on ? cssWidth(widthVar, state === "open" ? "20rem" : "3.5rem") : "",
-      can: canPush && desktop,
-    });
+    lastOver = on && state === "open" && mode !== "push";
+    let css = "";
+    if (on) {
+      const width = cssWidth(
+        widthVar,
+        widthVar === "--quartz-nav-rail-open-width" ? "20rem" : "3.5rem",
+      );
+      const gap = cssWidth("--quartz-nav-rail-gap", "0px");
+      css = /^0[a-z]*$/.test(gap) ? width : `calc(${width} + ${gap})`;
+    }
+    railPushes[side].set(nav, { px: lastPx, css, can: canPush && desktop });
     syncRailSide(side);
-    if (on && state === "open") nav.dataset.railPushing = "";
+    if (on && state === "open" && mode === "push") nav.dataset.railPushing = "";
     else delete nav.dataset.railPushing;
     if (holding() && state === "open") remember("local", pinKey, JSON.stringify(restoreRecord()));
     // The permanent strip's push, for the early script as well.
