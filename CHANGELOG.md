@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.2] - 2026-11-21
+
 ### Added
 
 - `--quartz-nav-rail-gap` (default `0px`): room between a pushing rail and the page. It counts
