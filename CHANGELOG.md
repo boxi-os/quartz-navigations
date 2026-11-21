@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `quartz.cssVariables` in `package.json`: every `--quartz-nav-*` custom property a site may set,
+  with its default (and dark default), selector, kind, group and a description in English and
+  German, in the order editors should show them. QuartzHub lists them under Styles ▸ Variables. A
+  test holds the list against the stylesheet in both directions.
+
 ## [0.6.3] - 2026-11-21
 
 ### Fixed

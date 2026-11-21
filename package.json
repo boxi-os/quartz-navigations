@@ -1394,6 +1394,619 @@
         "defaultPosition": "left",
         "defaultPriority": 10
       }
+    },
+    "cssVariables": {
+      "groups": [
+        {
+          "id": "shape",
+          "label": "Spacing and shape",
+          "label_de": "Abstände und Form"
+        },
+        {
+          "id": "type",
+          "label": "Type",
+          "label_de": "Schrift"
+        },
+        {
+          "id": "colors",
+          "label": "Colours",
+          "label_de": "Farben"
+        },
+        {
+          "id": "panels",
+          "label": "Panels (dropdown, mega, flyout)",
+          "label_de": "Panels (Dropdown, Mega, Flyout)"
+        },
+        {
+          "id": "offcanvas",
+          "label": "Off-canvas",
+          "label_de": "Off-Canvas"
+        },
+        {
+          "id": "rail",
+          "label": "Rail",
+          "label_de": "Randmenü"
+        }
+      ],
+      "variables": [
+        {
+          "name": "quartz-nav-gap",
+          "selector": ".quartz-nav",
+          "default": "0.25rem 0.5rem",
+          "kind": "length",
+          "group": "shape",
+          "description": "Gaps between entries in horizontal lists (row, column).",
+          "description_de": "Abstände zwischen den Einträgen horizontaler Listen (Zeile, Spalte)."
+        },
+        {
+          "name": "quartz-nav-nested-gap",
+          "selector": ".quartz-nav",
+          "default": "0.25rem 0.5rem",
+          "kind": "length",
+          "group": "shape",
+          "description": "Gaps inside nested horizontal lists.",
+          "description_de": "Abstände in verschachtelten horizontalen Listen."
+        },
+        {
+          "name": "quartz-nav-indent",
+          "selector": ".quartz-nav",
+          "default": "1rem",
+          "kind": "length",
+          "group": "shape",
+          "description": "Indentation of nested levels.",
+          "description_de": "Einrückung verschachtelter Ebenen."
+        },
+        {
+          "name": "quartz-nav-item-padding-y",
+          "selector": ".quartz-nav",
+          "default": "0.2rem",
+          "kind": "length",
+          "group": "shape",
+          "description": "Vertical padding of a row.",
+          "description_de": "Innenabstand einer Zeile oben und unten."
+        },
+        {
+          "name": "quartz-nav-item-padding-x",
+          "selector": ".quartz-nav",
+          "default": "0.5rem",
+          "kind": "length",
+          "group": "shape",
+          "description": "Horizontal padding of a row.",
+          "description_de": "Innenabstand einer Zeile links und rechts."
+        },
+        {
+          "name": "quartz-nav-radius",
+          "selector": ".quartz-nav",
+          "default": "4px",
+          "kind": "length",
+          "group": "shape",
+          "description": "Corner radius of rows.",
+          "description_de": "Eckenradius der Zeilen."
+        },
+        {
+          "name": "quartz-nav-row-height",
+          "selector": ".quartz-nav",
+          "default": "calc(1em * var(--quartz-nav-line-height) + 2 * var(--quartz-nav-item-padding-y))",
+          "kind": "length",
+          "group": "shape",
+          "description": "Height of one row; the toggle button of split rows is sized to it.",
+          "description_de": "Höhe einer Zeile; danach richtet sich der Aufklapp-Button geteilter Zeilen."
+        },
+        {
+          "name": "quartz-nav-toggle-size",
+          "selector": ".quartz-nav",
+          "default": "1.75rem",
+          "kind": "length",
+          "group": "shape",
+          "description": "Width of the toggle button in split rows.",
+          "description_de": "Breite des Aufklapp-Buttons in geteilten Zeilen."
+        },
+        {
+          "name": "quartz-nav-chevron-open-rotate",
+          "selector": ".quartz-nav",
+          "default": "180deg",
+          "kind": "other",
+          "group": "shape",
+          "description": "Rotation of the chevron of an open folder (90deg for chevron-right).",
+          "description_de": "Drehung des Pfeils bei offenem Ordner (90deg für chevron-right)."
+        },
+        {
+          "name": "quartz-nav-icon-size",
+          "selector": ".quartz-nav",
+          "default": "1.1em",
+          "kind": "length",
+          "group": "shape",
+          "description": "Size of icons in the list variants.",
+          "description_de": "Größe der Icons in den Listen-Varianten."
+        },
+        {
+          "name": "quartz-nav-accent-bar",
+          "selector": ".quartz-nav",
+          "default": "3px",
+          "kind": "length",
+          "group": "shape",
+          "description": "Width of the accent bar at the current page in vertical variants.",
+          "description_de": "Breite des Akzentbalkens an der aktuellen Seite in den vertikalen Varianten."
+        },
+        {
+          "name": "quartz-nav-divider-gap",
+          "selector": ".quartz-nav",
+          "default": "0.375rem",
+          "kind": "length",
+          "group": "shape",
+          "description": "Room before and after a divider line.",
+          "description_de": "Abstand vor und nach einer Trennlinie."
+        },
+        {
+          "name": "quartz-nav-transition",
+          "selector": ".quartz-nav",
+          "default": "0.2s ease",
+          "kind": "other",
+          "group": "shape",
+          "description": "Every transition and animation (0s switches them off).",
+          "description_de": "Alle Übergänge und Animationen (0s schaltet sie ab)."
+        },
+        {
+          "name": "quartz-nav-font",
+          "selector": ".quartz-nav",
+          "default": "var(--bodyFont, inherit)",
+          "kind": "font",
+          "group": "type",
+          "description": "Font of the entries.",
+          "description_de": "Schrift der Einträge."
+        },
+        {
+          "name": "quartz-nav-heading-font",
+          "selector": ".quartz-nav",
+          "default": "var(--headerFont, inherit)",
+          "kind": "font",
+          "group": "type",
+          "description": "Font of headings and the title.",
+          "description_de": "Schrift der Überschriften und des Titels."
+        },
+        {
+          "name": "quartz-nav-folder-font",
+          "selector": ".quartz-nav",
+          "default": "var(--quartz-nav-heading-font)",
+          "kind": "font",
+          "group": "type",
+          "description": "Font of folder titles.",
+          "description_de": "Schrift der Ordnertitel."
+        },
+        {
+          "name": "quartz-nav-line-height",
+          "selector": ".quartz-nav",
+          "default": "1.6",
+          "kind": "number",
+          "group": "type",
+          "description": "Line height of the entries.",
+          "description_de": "Zeilenhöhe der Einträge."
+        },
+        {
+          "name": "quartz-nav-title-size",
+          "selector": ".quartz-nav",
+          "default": "1rem",
+          "kind": "length",
+          "group": "type",
+          "description": "Size of the title heading.",
+          "description_de": "Größe der Überschrift title."
+        },
+        {
+          "name": "quartz-nav-title-margin",
+          "selector": ".quartz-nav",
+          "default": "0 0 0.5rem",
+          "kind": "length",
+          "group": "type",
+          "description": "Margin around the title heading.",
+          "description_de": "Außenabstand der Überschrift title."
+        },
+        {
+          "name": "quartz-nav-level-1-size",
+          "selector": ".quartz-nav",
+          "default": "0.95rem",
+          "kind": "length",
+          "group": "type",
+          "description": "Size of folder rows on level 1.",
+          "description_de": "Größe der Ordnerzeilen auf Ebene 1."
+        },
+        {
+          "name": "quartz-nav-level-2-size",
+          "selector": ".quartz-nav",
+          "default": "0.9rem",
+          "kind": "length",
+          "group": "type",
+          "description": "Size of folder rows on level 2.",
+          "description_de": "Größe der Ordnerzeilen auf Ebene 2."
+        },
+        {
+          "name": "quartz-nav-level-3-size",
+          "selector": ".quartz-nav",
+          "default": "0.875rem",
+          "kind": "length",
+          "group": "type",
+          "description": "Size of folder rows on level 3.",
+          "description_de": "Größe der Ordnerzeilen auf Ebene 3."
+        },
+        {
+          "name": "quartz-nav-level-4-size",
+          "selector": ".quartz-nav",
+          "default": "0.8rem",
+          "kind": "length",
+          "group": "type",
+          "description": "Size of folder rows on level 4 and deeper.",
+          "description_de": "Größe der Ordnerzeilen ab Ebene 4."
+        },
+        {
+          "name": "quartz-nav-level-1-weight",
+          "selector": ".quartz-nav",
+          "default": "700",
+          "kind": "number",
+          "group": "type",
+          "description": "Weight of folder rows on level 1.",
+          "description_de": "Schriftstärke der Ordnerzeilen auf Ebene 1."
+        },
+        {
+          "name": "quartz-nav-level-2-weight",
+          "selector": ".quartz-nav",
+          "default": "600",
+          "kind": "number",
+          "group": "type",
+          "description": "Weight of folder rows on level 2.",
+          "description_de": "Schriftstärke der Ordnerzeilen auf Ebene 2."
+        },
+        {
+          "name": "quartz-nav-level-3-weight",
+          "selector": ".quartz-nav",
+          "default": "500",
+          "kind": "number",
+          "group": "type",
+          "description": "Weight of folder rows on level 3.",
+          "description_de": "Schriftstärke der Ordnerzeilen auf Ebene 3."
+        },
+        {
+          "name": "quartz-nav-level-4-weight",
+          "selector": ".quartz-nav",
+          "default": "500",
+          "kind": "number",
+          "group": "type",
+          "description": "Weight of folder rows on level 4 and deeper.",
+          "description_de": "Schriftstärke der Ordnerzeilen ab Ebene 4."
+        },
+        {
+          "name": "quartz-nav-page-size",
+          "selector": ".quartz-nav",
+          "default": "0.875rem",
+          "kind": "length",
+          "group": "type",
+          "description": "Size cap of page rows (they never get larger than their level).",
+          "description_de": "Größenobergrenze der Seitenzeilen (nie größer als ihre Ebene)."
+        },
+        {
+          "name": "quartz-nav-page-weight",
+          "selector": ".quartz-nav",
+          "default": "400",
+          "kind": "number",
+          "group": "type",
+          "description": "Weight of page rows.",
+          "description_de": "Schriftstärke der Seitenzeilen."
+        },
+        {
+          "name": "quartz-nav-bar-weight",
+          "selector": ".quartz-nav",
+          "default": "500",
+          "kind": "number",
+          "group": "type",
+          "description": "Weight of the top row of bar, dropdown, mega and tabs.",
+          "description_de": "Schriftstärke der obersten Zeile von bar, dropdown, mega und tabs."
+        },
+        {
+          "name": "quartz-nav-weight-active",
+          "selector": ".quartz-nav",
+          "default": "600",
+          "kind": "number",
+          "group": "type",
+          "description": "Weight of the active page.",
+          "description_de": "Schriftstärke der aktiven Seite."
+        },
+        {
+          "name": "quartz-nav-color",
+          "selector": ".quartz-nav",
+          "default": "var(--darkgray, #4e4e4e)",
+          "kind": "color",
+          "group": "colors",
+          "description": "Link colour.",
+          "description_de": "Farbe der Links."
+        },
+        {
+          "name": "quartz-nav-color-hover",
+          "selector": ".quartz-nav",
+          "default": "var(--secondary, #284b63)",
+          "kind": "color",
+          "group": "colors",
+          "description": "Link colour under the pointer.",
+          "description_de": "Farbe eines Links unter dem Mauszeiger."
+        },
+        {
+          "name": "quartz-nav-color-active",
+          "selector": ".quartz-nav",
+          "default": "var(--secondary, #284b63)",
+          "kind": "color",
+          "group": "colors",
+          "description": "Colour of the active page.",
+          "description_de": "Farbe der aktiven Seite."
+        },
+        {
+          "name": "quartz-nav-color-trail",
+          "selector": ".quartz-nav",
+          "default": "var(--secondary, #284b63)",
+          "kind": "color",
+          "group": "colors",
+          "description": "Colour of the folders on the way to the active page.",
+          "description_de": "Farbe der Ordner auf dem Weg zur aktiven Seite."
+        },
+        {
+          "name": "quartz-nav-color-static",
+          "selector": ".quartz-nav",
+          "default": "var(--dark, #2b2b2b)",
+          "kind": "color",
+          "group": "colors",
+          "description": "Colour of folder titles without a link.",
+          "description_de": "Farbe von Ordnertiteln ohne Link."
+        },
+        {
+          "name": "quartz-nav-color-heading",
+          "selector": ".quartz-nav",
+          "default": "var(--dark, #2b2b2b)",
+          "kind": "color",
+          "group": "colors",
+          "description": "Colour of headings.",
+          "description_de": "Farbe der Überschriften."
+        },
+        {
+          "name": "quartz-nav-color-muted",
+          "selector": ".quartz-nav",
+          "default": "var(--gray, #9c9c9c)",
+          "kind": "color",
+          "group": "colors",
+          "description": "Colour of chevrons and labels.",
+          "description_de": "Farbe der Pfeile und Beschriftungen."
+        },
+        {
+          "name": "quartz-nav-color-icon",
+          "selector": ".quartz-nav",
+          "default": "var(--gray, #9c9c9c)",
+          "kind": "color",
+          "group": "colors",
+          "description": "Colour of glyphs and icons.",
+          "description_de": "Farbe der Glyphen und Icons."
+        },
+        {
+          "name": "quartz-nav-bg-hover",
+          "selector": ".quartz-nav",
+          "default": "var(--highlight, rgba(143, 159, 169, 0.15))",
+          "kind": "color",
+          "group": "colors",
+          "description": "Background of a row under the pointer.",
+          "description_de": "Hintergrund einer Zeile unter dem Mauszeiger."
+        },
+        {
+          "name": "quartz-nav-bg-active",
+          "selector": ".quartz-nav",
+          "default": "var(--highlight, rgba(143, 159, 169, 0.15))",
+          "kind": "color",
+          "group": "colors",
+          "description": "Background of the current page.",
+          "description_de": "Hintergrund der aktuellen Seite."
+        },
+        {
+          "name": "quartz-nav-bg-panel",
+          "selector": ".quartz-nav",
+          "default": "var(--light, #fff)",
+          "kind": "color",
+          "group": "colors",
+          "description": "Background of popups, the off-canvas panel and the rail.",
+          "description_de": "Hintergrund von Panels, Off-Canvas und Randmenü."
+        },
+        {
+          "name": "quartz-nav-border",
+          "selector": ".quartz-nav",
+          "default": "var(--lightgray, #e5e5e5)",
+          "kind": "color",
+          "group": "colors",
+          "description": "Borders and guide lines.",
+          "description_de": "Rahmen und Führungslinien."
+        },
+        {
+          "name": "quartz-nav-divider-color",
+          "selector": ".quartz-nav",
+          "default": "var(--quartz-nav-border)",
+          "kind": "color",
+          "group": "colors",
+          "description": "Colour of divider lines.",
+          "description_de": "Farbe der Trennlinien."
+        },
+        {
+          "name": "quartz-nav-focus",
+          "selector": ".quartz-nav",
+          "default": "var(--secondary, #284b63)",
+          "kind": "color",
+          "group": "colors",
+          "description": "Colour of focus rings.",
+          "description_de": "Farbe der Fokusringe."
+        },
+        {
+          "name": "quartz-nav-shadow",
+          "selector": ".quartz-nav",
+          "default": "0 6px 20px rgba(0, 0, 0, 0.12)",
+          "defaultDark": "0 6px 24px rgba(0, 0, 0, 0.6)",
+          "kind": "other",
+          "group": "colors",
+          "description": "Shadow of panels.",
+          "description_de": "Schatten der Panels."
+        },
+        {
+          "name": "quartz-nav-backdrop",
+          "selector": ".quartz-nav",
+          "default": "rgba(0, 0, 0, 0.35)",
+          "defaultDark": "rgba(0, 0, 0, 0.55)",
+          "kind": "color",
+          "group": "colors",
+          "description": "Backdrop behind the off-canvas panel.",
+          "description_de": "Hintergrund hinter dem Off-Canvas-Panel."
+        },
+        {
+          "name": "quartz-nav-panel-min-width",
+          "selector": ".quartz-nav",
+          "default": "12rem",
+          "kind": "length",
+          "group": "panels",
+          "description": "Minimum width of a panel.",
+          "description_de": "Mindestbreite eines Panels."
+        },
+        {
+          "name": "quartz-nav-panel-padding",
+          "selector": ".quartz-nav",
+          "default": "0.5rem",
+          "kind": "length",
+          "group": "panels",
+          "description": "Padding inside a panel.",
+          "description_de": "Innenabstand eines Panels."
+        },
+        {
+          "name": "quartz-nav-panel-radius",
+          "selector": ".quartz-nav",
+          "default": "6px",
+          "kind": "length",
+          "group": "panels",
+          "description": "Corner radius of a panel.",
+          "description_de": "Eckenradius eines Panels."
+        },
+        {
+          "name": "quartz-nav-panel-z",
+          "selector": ".quartz-nav",
+          "default": "20",
+          "kind": "number",
+          "group": "panels",
+          "description": "Stacking level of panels.",
+          "description_de": "Stapelebene der Panels."
+        },
+        {
+          "name": "quartz-nav-mega-min-width",
+          "selector": ".quartz-nav",
+          "default": "min(40rem, 90vw)",
+          "kind": "length",
+          "group": "panels",
+          "description": "Width of mega panels.",
+          "description_de": "Breite der Mega-Panels."
+        },
+        {
+          "name": "quartz-nav-column-min-width",
+          "selector": ".quartz-nav",
+          "default": "10rem",
+          "kind": "length",
+          "group": "panels",
+          "description": "Minimum width of a column in columns and mega.",
+          "description_de": "Mindestbreite einer Spalte bei columns und mega."
+        },
+        {
+          "name": "quartz-nav-column-gap",
+          "selector": ".quartz-nav",
+          "default": "1rem 1.5rem",
+          "kind": "length",
+          "group": "panels",
+          "description": "Gaps between columns in columns and mega (row, column).",
+          "description_de": "Abstände zwischen den Spalten bei columns und mega (Zeile, Spalte)."
+        },
+        {
+          "name": "quartz-nav-offcanvas-width",
+          "selector": ".quartz-nav",
+          "default": "min(20rem, 85vw)",
+          "kind": "length",
+          "group": "offcanvas",
+          "description": "Width of the off-canvas panel.",
+          "description_de": "Breite des Off-Canvas-Panels."
+        },
+        {
+          "name": "quartz-nav-offcanvas-padding",
+          "selector": ".quartz-nav",
+          "default": "1rem",
+          "kind": "length",
+          "group": "offcanvas",
+          "description": "Padding inside the off-canvas panel.",
+          "description_de": "Innenabstand des Off-Canvas-Panels."
+        },
+        {
+          "name": "quartz-nav-offcanvas-z",
+          "selector": ".quartz-nav",
+          "default": "100",
+          "kind": "number",
+          "group": "offcanvas",
+          "description": "Stacking level of the off-canvas panel.",
+          "description_de": "Stapelebene des Off-Canvas-Panels."
+        },
+        {
+          "name": "quartz-nav-rail-width",
+          "selector": ".quartz-nav",
+          "default": "3.5rem",
+          "kind": "length",
+          "group": "rail",
+          "description": "Width of the strip.",
+          "description_de": "Breite der Leiste."
+        },
+        {
+          "name": "quartz-nav-rail-open-width",
+          "selector": ".quartz-nav",
+          "default": "min(20rem, 100vw)",
+          "kind": "length",
+          "group": "rail",
+          "description": "Width of the full menu.",
+          "description_de": "Breite des ganzen Menüs."
+        },
+        {
+          "name": "quartz-nav-rail-icon-size",
+          "selector": ".quartz-nav",
+          "default": "1.4rem",
+          "kind": "length",
+          "group": "rail",
+          "description": "Icons and monograms in the strip.",
+          "description_de": "Icons und Buchstaben in der Leiste."
+        },
+        {
+          "name": "quartz-nav-rail-row-height",
+          "selector": ".quartz-nav",
+          "default": "2.75rem",
+          "kind": "length",
+          "group": "rail",
+          "description": "Height of level-1 rows.",
+          "description_de": "Höhe der Zeilen der ersten Ebene."
+        },
+        {
+          "name": "quartz-nav-rail-gap",
+          "selector": ".quartz-nav",
+          "default": "0px",
+          "kind": "length",
+          "group": "rail",
+          "description": "Room between a pushing rail and the page.",
+          "description_de": "Abstand zwischen schiebendem Randmenü und Seite."
+        },
+        {
+          "name": "quartz-nav-rail-top",
+          "selector": ".quartz-nav",
+          "kind": "length",
+          "group": "rail",
+          "description": "Top edge of the panel; unset, it starts below the sticky bar.",
+          "description_de": "Oberkante des Panels; ohne Wert beginnt es unter der festen Kopfleiste."
+        },
+        {
+          "name": "quartz-nav-rail-z",
+          "selector": ".quartz-nav",
+          "default": "100",
+          "kind": "number",
+          "group": "rail",
+          "description": "Stacking level of the rail.",
+          "description_de": "Stapelebene des Randmenüs."
+        }
+      ]
     }
   },
   "engines": {

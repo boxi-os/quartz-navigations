@@ -428,6 +428,10 @@ so a site's unlayered `quartz/styles/custom.scss` overrides them without any sel
 }
 ```
 
+The same list, with a kind, a group and a description in English and German, is in
+`package.json` under `quartz.cssVariables`, for editors such as QuartzHub (Styles ▸ Variables);
+a test holds it against the stylesheet.
+
 | Variable                                                                                                          | Default                                                   | Used for                                                                          |
 | ----------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- | --------------------------------------------------------------------------------- |
 | `--quartz-nav-gap`, `--quartz-nav-nested-gap`                                                                     | `0.25rem 0.5rem`, `0.25rem 0.5rem`                        | Gaps in horizontal lists                                                          |

@@ -439,6 +439,10 @@ die ungeschichtete `quartz/styles/custom.scss` der Site sie ohne Selektor-Gefech
 }
 ```
 
+Dieselbe Liste steht mit Art, Gruppe und Beschreibung auf Englisch und Deutsch in
+`package.json` unter `quartz.cssVariables`, für Editoren wie QuartzHub (Stile ▸ Variablen);
+ein Test hält sie gleich mit dem Stylesheet.
+
 | Variable                                                                                                          | Standard                                                   | Wirkung                                                                                       |
 | ----------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
 | `--quartz-nav-gap`, `--quartz-nav-nested-gap`                                                                     | `0.25rem 0.5rem`, `0.25rem 0.5rem`                         | Abstände in horizontalen Listen                                                               |
