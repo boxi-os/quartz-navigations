@@ -469,6 +469,7 @@ describe("client script", () => {
     resize(false);
     expect(root.classList.contains("quartz-nav-rail-right")).toBe(true);
     for (const fn of cleanups.splice(0)) fn();
+    await Promise.resolve(); // the teardown syncs <html> once the task is done
     expect(root.classList.contains("quartz-nav-rail-right")).toBe(false);
     expect(root.style.getPropertyValue("--quartz-nav-rail-offset-right")).toBe("");
   });
@@ -881,11 +882,49 @@ describe("client script", () => {
       expect(left!.dataset.railState).toBe("closed");
       expect(offsets()).toEqual(["0px", "320px"]);
       for (const fn of cleanups.splice(0)) fn();
+      await Promise.resolve(); // the teardown syncs <html> once the task is done
       expect(root.style.getPropertyValue("--quartz-nav-rail-offset-right")).toBe("");
     } finally {
       proto.getBoundingClientRect = rect;
       Object.defineProperty(window, "innerWidth", { value: innerWidth, configurable: true });
     }
+  });
+
+  it("rail: a page change keeps the push in place instead of sliding the page in from 0", async () => {
+    const strip = `<nav data-quartz-nav="stay" data-variant="rail" data-rail-rest="icons" data-rail-expand="hover" data-rail-content="push" data-bp-mobile="800px" class="quartz-nav quartz-nav--rail quartz-nav--rail-icons quartz-nav--rail-left" style="--quartz-nav-rail-width: 4rem">
+        <button type="button" class="quartz-nav__rail-trigger" aria-expanded="false"></button>
+        <div class="quartz-nav__panel"><ul class="quartz-nav__list" data-level="1"><li><a href="./a">a</a></li></ul></div></nav>`;
+    const root = document.documentElement;
+    const offset = () => root.style.getPropertyValue("--quartz-nav-rail-offset-left");
+    mount(strip);
+    await nav();
+    expect(offset()).toBe("4rem");
+
+    // Quartz's page change in one task: cleanups, the new page, `nav`. Every state <html> passes
+    // through must still push, or a layout read in between starts the transition from 0.
+    const records: MutationRecord[] = [];
+    const seen = new MutationObserver((found) => records.push(...found));
+    seen.observe(root, { attributes: true, attributeOldValue: true });
+    for (const fn of cleanups.splice(0)) fn();
+    document.body.innerHTML = `<main></main>${strip}`;
+    document.dispatchEvent(new CustomEvent("nav", { detail: { url: "docs/a" } }) as never);
+    await new Promise((r) => setTimeout(r, 0));
+    records.push(...seen.takeRecords());
+    seen.disconnect();
+    const passed = (name: string) =>
+      records.filter((r) => r.attributeName === name).map((r) => r.oldValue ?? "");
+    for (const style of passed("style")) expect(style).toContain("--quartz-nav-rail-offset-left");
+    for (const cls of passed("class")) expect(cls).toContain("quartz-nav-rail-push-left");
+    expect(offset()).toBe("4rem");
+    expect(root.classList.contains("quartz-nav-rail-push-left")).toBe(true);
+
+    // A next page without a rail on that edge drops the push.
+    for (const fn of cleanups.splice(0)) fn();
+    document.body.innerHTML = `<main></main>`;
+    document.dispatchEvent(new CustomEvent("nav", { detail: { url: "docs/b" } }) as never);
+    await Promise.resolve();
+    expect(offset()).toBe("");
+    expect(root.classList.contains("quartz-nav-rail-push-left")).toBe(false);
   });
 
   it("rail: takes over from the early script and remembers the panel's top edge", async () => {
@@ -936,6 +975,7 @@ describe("client script", () => {
     await new Promise((r) => setTimeout(r, 50));
     expect(root.style.getPropertyValue("--quartz-nav-rail-offset-left")).toBe("18rem");
     for (const fn of cleanups.splice(0)) fn();
+    await Promise.resolve(); // the teardown syncs <html> once the task is done
     expect(root.classList.contains("quartz-nav-rail-push-left")).toBe(false);
     expect(root.style.getPropertyValue("--quartz-nav-rail-offset-left")).toBe("");
   });

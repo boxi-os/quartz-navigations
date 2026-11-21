@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Rail: with `content: push`, every page change slid the page in from the window edge. The rail's
+  SPA cleanup dropped the push at once, Quartz reads the layout before the next page's rail sets
+  it again, and the offset's transition started from 0. The cleanup now leaves the push until the
+  next page has set up its rails; a page without a rail on that edge still drops it.
+
 ## [0.6.2] - 2026-11-21
 
 ### Added

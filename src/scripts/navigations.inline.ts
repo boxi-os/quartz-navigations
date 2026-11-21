@@ -453,6 +453,25 @@ function syncRailSide(side: RailSide): void {
   }
 }
 
+const railSyncPending = new Set<RailSide>();
+
+/**
+ * `syncRailSide` once the current task is done: for a rail's SPA cleanup. Quartz runs the
+ * cleanups, swaps the page and fires `nav` in one go, and something in between reads the layout
+ * (`h1.innerText`, `scrollIntoView`). Dropping the push right away let the browser see 0 there,
+ * and the offset's transition slid the page back in from the edge on every page change. Synced
+ * after the next page's rails have set themselves up, the push stays as it was, or goes (with
+ * its transition) when the next page has no rail on that edge.
+ */
+function syncRailSideSoon(side: RailSide): void {
+  if (railSyncPending.has(side)) return;
+  railSyncPending.add(side);
+  queueMicrotask(() => {
+    railSyncPending.delete(side);
+    syncRailSide(side);
+  });
+}
+
 /**
  * The rail (Nexus menu). `closed` shows the button only (`rest: hidden`) or the icon strip
  * (`rest: icons`); `part` slides in the strip while the pointer rests on the button; `open` is
@@ -893,7 +912,7 @@ function setupRail(nav: HTMLElement): void {
     if (lifted) dropPanel(panel);
     root.classList.remove(LOCK_CLASS);
     railPushes[side].delete(nav);
-    syncRailSide(side);
+    syncRailSideSoon(side);
   });
 }
 
